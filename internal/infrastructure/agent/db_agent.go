@@ -3,10 +3,10 @@ package agent
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	domainAgent "github.com/mololab/alodb/internal/domain/agent"
+	"github.com/mololab/alodb/pkg/logger"
 
 	"google.golang.org/adk/agent/llmagent"
 	"google.golang.org/adk/model/gemini"
@@ -20,7 +20,7 @@ import (
 const (
 	agentName           = "alodb_agent"
 	agentDescription    = "A database assistant that helps users understand their database schema and generate SQL queries."
-	defaultModelName    = "gemini-2.0-flash"
+	defaultModelName    = "gemini-3-pro-preview"
 	instructionFilePath = "prompts/agent_instruction.md"
 )
 
@@ -38,8 +38,10 @@ func NewDBAgent(ctx context.Context, config domainAgent.AgentConfig) (*DBAgent, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to load agent instruction: %w", err)
 	}
-	log.Printf("[AGENT] Loaded instruction (%d bytes)", len(instruction))
-	log.Printf("[AGENT] Schema cache TTL: %v", config.SchemaCacheTTL)
+	logger.Debug().
+		Int("instruction_bytes", len(instruction)).
+		Dur("cache_ttl", config.SchemaCacheTTL).
+		Msg("agent config loaded")
 
 	model, err := gemini.NewModel(ctx, config.ModelName, &genai.ClientConfig{
 		APIKey: config.GoogleAPIKey,

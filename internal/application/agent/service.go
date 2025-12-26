@@ -7,6 +7,7 @@ import (
 
 	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	infraAgent "github.com/mololab/alodb/internal/infrastructure/agent"
+	"github.com/mololab/alodb/pkg/logger"
 )
 
 // Service handles agent operations
@@ -32,12 +33,15 @@ func (s *Service) Initialize(ctx context.Context) error {
 		return nil
 	}
 
+	logger.Info().Msg("initializing agent")
 	agent, err := infraAgent.NewDBAgent(ctx, s.config)
 	if err != nil {
+		logger.Error().Err(err).Msg("failed to initialize agent")
 		return fmt.Errorf("failed to initialize agent: %w", err)
 	}
 
 	s.agent = agent
+	logger.Info().Msg("agent initialized successfully")
 	return nil
 }
 
@@ -47,9 +51,11 @@ func (s *Service) Chat(ctx context.Context, req domainAgent.ChatRequest) (*domai
 	defer s.mu.RUnlock()
 
 	if s.agent == nil {
+		logger.Error().Msg("chat called before agent initialization")
 		return nil, fmt.Errorf("agent not initialized")
 	}
 
+	logger.Debug().Str("session_id", req.SessionID).Msg("processing chat request")
 	return s.agent.Chat(ctx, req)
 }
 

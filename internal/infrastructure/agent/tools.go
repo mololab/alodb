@@ -1,11 +1,11 @@
 package agent
 
 import (
-	"log"
 	"time"
 
 	"github.com/mololab/alodb/internal/infrastructure/agent/cache"
 	"github.com/mololab/alodb/internal/infrastructure/agent/tools"
+	"github.com/mololab/alodb/pkg/logger"
 
 	"google.golang.org/adk/tool"
 	"google.golang.org/adk/tool/functiontool"
@@ -27,14 +27,11 @@ func createSchemaReaderTool() (tool.Tool, error) {
 
 // schemaReaderHandler handles the schema reader tool invocation
 func schemaReaderHandler(toolCtx tool.Context, input tools.SchemaReaderInput) (tools.SchemaReaderOutput, error) {
-	log.Printf("[TOOL] read_schema called")
+	logger.Debug().Msg("read_schema tool called")
 
-	// connection string from context
 	connStr, ok := toolCtx.Value(connectionStringKey).(string)
-	log.Printf("[TOOL] Connection string from context: ok=%v, empty=%v", ok, connStr == "")
-
 	if !ok || connStr == "" {
-		log.Printf("[TOOL] ERROR: No connection string in context")
+		logger.Warn().Msg("no connection string in context")
 		return tools.SchemaReaderOutput{
 			Status:  "error",
 			Message: "No database connection configured for this session.",
@@ -45,7 +42,7 @@ func schemaReaderHandler(toolCtx tool.Context, input tools.SchemaReaderInput) (t
 	schemaCache := cache.NewSchemaCache(cacheTTL)
 
 	if cachedSchema := schemaCache.Get(toolCtx); cachedSchema != nil {
-		log.Printf("[TOOL] Returning cached schema")
+		logger.Debug().Msg("returning cached schema")
 		return tools.SchemaReaderOutput{
 			Status:  "success",
 			Schema:  cachedSchema,
@@ -53,17 +50,15 @@ func schemaReaderHandler(toolCtx tool.Context, input tools.SchemaReaderInput) (t
 		}, nil
 	}
 
-	// cache miss
-	log.Printf("[TOOL] Cache miss, reading from database...")
+	logger.Debug().Msg("cache miss, reading from database")
 	result, err := tools.ReadSchemaFromDatabase(connStr)
 	if err != nil {
 		return result, err
 	}
 
-	// cache the schema if successful
 	if result.Status == "success" && result.Schema != nil {
 		if err := schemaCache.Set(toolCtx, result.Schema); err != nil {
-			log.Printf("[TOOL] Warning: Failed to cache schema: %v", err)
+			logger.Warn().Err(err).Msg("failed to cache schema")
 		}
 	}
 

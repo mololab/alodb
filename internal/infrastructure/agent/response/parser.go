@@ -2,10 +2,10 @@ package response
 
 import (
 	"encoding/json"
-	"log"
 	"strings"
 
 	domainAgent "github.com/mololab/alodb/internal/domain/agent"
+	"github.com/mololab/alodb/pkg/logger"
 )
 
 // AgentResponse represents the expected JSON response structure from the LLM
@@ -35,10 +35,7 @@ func (p *Parser) Parse(sessionID, rawResponse string) (*domainAgent.ChatResponse
 
 	var parsed AgentResponse
 	if err := json.Unmarshal([]byte(cleaned), &parsed); err != nil {
-		log.Printf("[PARSER] Failed to parse JSON response: %v", err)
-		log.Printf("[PARSER] Raw response was: %s", rawResponse)
-
-		// if parsing fails, return the raw response as message
+		logger.Debug().Err(err).Msg("failed to parse JSON response, returning raw")
 		return &domainAgent.ChatResponse{
 			SessionID: sessionID,
 			Message:   rawResponse,
@@ -47,7 +44,7 @@ func (p *Parser) Parse(sessionID, rawResponse string) (*domainAgent.ChatResponse
 	}
 
 	queries := p.convertQueries(parsed.Queries)
-	log.Printf("[PARSER] Successfully parsed %d queries", len(queries))
+	logger.Debug().Int("queries", len(queries)).Msg("parsed response")
 
 	return &domainAgent.ChatResponse{
 		SessionID: sessionID,

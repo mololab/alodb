@@ -26,6 +26,7 @@ type GoogleConfig struct {
 type ServerConfig struct {
 	Port      string
 	UIBaseURL string
+	Env       string
 }
 
 type AgentConfig struct {
@@ -56,6 +57,10 @@ func Load() (config Config, err error) {
 	// Server
 	config.Server.Port = viper.GetString("SERVER_PORT")
 	config.Server.UIBaseURL = viper.GetString("SERVER_UIBASEURL")
+	config.Server.Env = viper.GetString("SERVER_ENV")
+	if config.Server.Env == "" {
+		config.Server.Env = "production"
+	}
 
 	// Agent
 	config.Agent.SchemaCacheTTL = parseDuration(

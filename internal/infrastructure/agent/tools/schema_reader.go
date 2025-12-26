@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/lib/pq"
 	"github.com/mololab/alodb/internal/domain/database"
+	"github.com/mololab/alodb/pkg/logger"
 )
 
 // SchemaReaderInput represents the input for the schema reader tool
@@ -23,10 +23,7 @@ type SchemaReaderOutput struct {
 
 // ReadSchemaFromDatabase reads the database schema directly from PostgreSQL
 func ReadSchemaFromDatabase(connectionString string) (SchemaReaderOutput, error) {
-	log.Printf("[SCHEMA] ReadSchemaFromDatabase called")
-
 	if connectionString == "" {
-		log.Printf("[SCHEMA] ERROR: Empty connection string")
 		return SchemaReaderOutput{
 			Status:  "error",
 			Message: "No database connection configured. Please provide a connection string.",
@@ -35,10 +32,9 @@ func ReadSchemaFromDatabase(connectionString string) (SchemaReaderOutput, error)
 
 	ctx := context.Background()
 
-	log.Printf("[SCHEMA] Opening database connection...")
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
-		log.Printf("[SCHEMA] ERROR: Failed to open: %v", err)
+		logger.Error().Err(err).Msg("failed to open database")
 		return SchemaReaderOutput{
 			Status:  "error",
 			Message: fmt.Sprintf("failed to connect to database: %v", err),
@@ -46,28 +42,24 @@ func ReadSchemaFromDatabase(connectionString string) (SchemaReaderOutput, error)
 	}
 	defer db.Close()
 
-	// test connection
-	log.Printf("[SCHEMA] Pinging database...")
 	if err := db.PingContext(ctx); err != nil {
-		log.Printf("[SCHEMA] ERROR: Failed to ping: %v", err)
+		logger.Error().Err(err).Msg("failed to ping database")
 		return SchemaReaderOutput{
 			Status:  "error",
 			Message: fmt.Sprintf("failed to ping database: %v", err),
 		}, nil
 	}
-	log.Printf("[SCHEMA] Ping successful")
 
-	log.Printf("[SCHEMA] Extracting schema...")
 	schema, err := extractPostgresSchema(ctx, db)
 	if err != nil {
-		log.Printf("[SCHEMA] ERROR: Failed to extract schema: %v", err)
+		logger.Error().Err(err).Msg("failed to extract schema")
 		return SchemaReaderOutput{
 			Status:  "error",
 			Message: fmt.Sprintf("failed to extract schema: %v", err),
 		}, nil
 	}
 
-	log.Printf("[SCHEMA] Success! Found %d tables", len(schema.Tables))
+	logger.Info().Int("tables", len(schema.Tables)).Msg("schema extracted")
 	return SchemaReaderOutput{
 		Status: "success",
 		Schema: schema,
