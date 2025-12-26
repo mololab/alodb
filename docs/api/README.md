@@ -17,11 +17,13 @@ Chat with the database agent to generate SQL queries.
 #### Request
 
 **Headers:**
+
 ```
 Content-Type: application/json
 ```
 
 **Body (new conversation):**
+
 ```json
 {
   "message": "Show me all users with their orders",
@@ -30,6 +32,7 @@ Content-Type: application/json
 ```
 
 **Body (continue session):**
+
 ```json
 {
   "message": "Now filter by active users only",
@@ -38,15 +41,16 @@ Content-Type: application/json
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `message` | string | Yes | Natural language query |
-| `connection_string` | string | Yes | PostgreSQL connection URL |
-| `session_id` | string | No | UUID from previous response to continue conversation |
+| Field               | Type   | Required | Description                                          |
+| ------------------- | ------ | -------- | ---------------------------------------------------- |
+| `message`           | string | Yes      | Natural language query                               |
+| `connection_string` | string | Yes      | PostgreSQL connection URL                            |
+| `session_id`        | string | No       | UUID from previous response to continue conversation |
 
 #### Response
 
 **Success (200):**
+
 ```json
 {
   "success": true,
@@ -62,17 +66,18 @@ Content-Type: application/json
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `success` | boolean | Whether the request succeeded |
-| `session_id` | string | UUID to use for follow-up requests |
-| `message` | string | Optional message or explanation |
-| `queries` | array | Array of generated SQL queries |
-| `queries[].title` | string | Short descriptive title |
-| `queries[].query` | string | The SQL query |
-| `queries[].description` | string | Detailed explanation |
+| Field                   | Type    | Description                        |
+| ----------------------- | ------- | ---------------------------------- |
+| `success`               | boolean | Whether the request succeeded      |
+| `session_id`            | string  | UUID to use for follow-up requests |
+| `message`               | string  | Optional message or explanation    |
+| `queries`               | array   | Array of generated SQL queries     |
+| `queries[].title`       | string  | Short descriptive title            |
+| `queries[].query`       | string  | The SQL query                      |
+| `queries[].description` | string  | Detailed explanation               |
 
 **Error (400/500):**
+
 ```json
 {
   "success": false,
@@ -85,6 +90,7 @@ Content-Type: application/json
 **Example 1: Simple Query**
 
 Request:
+
 ```bash
 curl -X POST http://localhost:8080/v1/agent/chat \
   -H "Content-Type: application/json" \
@@ -95,6 +101,7 @@ curl -X POST http://localhost:8080/v1/agent/chat \
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -113,6 +120,7 @@ Response:
 **Example 2: Follow-up Query**
 
 Request:
+
 ```bash
 curl -X POST http://localhost:8080/v1/agent/chat \
   -H "Content-Type: application/json" \
@@ -124,6 +132,7 @@ curl -X POST http://localhost:8080/v1/agent/chat \
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -154,6 +163,7 @@ curl http://localhost:8080/v1/health
 #### Response
 
 **Success (200):**
+
 ```json
 {
   "status": "healthy"
@@ -170,16 +180,17 @@ PostgreSQL connection strings follow this format:
 postgres://username:password@host:port/database?sslmode=disable
 ```
 
-| Component | Description |
-|-----------|-------------|
-| `username` | Database user |
-| `password` | Database password |
-| `host` | Database server hostname |
-| `port` | Database server port (default: 5432) |
-| `database` | Database name |
-| `sslmode` | SSL mode (disable, require, verify-full) |
+| Component  | Description                              |
+| ---------- | ---------------------------------------- |
+| `username` | Database user                            |
+| `password` | Database password                        |
+| `host`     | Database server hostname                 |
+| `port`     | Database server port (default: 5432)     |
+| `database` | Database name                            |
+| `sslmode`  | SSL mode (disable, require, verify-full) |
 
 **Examples:**
+
 ```
 postgres://root:secret@localhost:5432/mydb?sslmode=disable
 postgres://admin:pass123@db.example.com:5432/production?sslmode=require
@@ -187,11 +198,11 @@ postgres://admin:pass123@db.example.com:5432/production?sslmode=require
 
 ## Error Codes
 
-| Status | Meaning |
-|--------|---------|
-| 200 | Success |
-| 400 | Bad request (invalid JSON, missing fields) |
-| 500 | Internal server error |
+| Status | Meaning                                    |
+| ------ | ------------------------------------------ |
+| 200    | Success                                    |
+| 400    | Bad request (invalid JSON, missing fields) |
+| 500    | Internal server error                      |
 
 ## Rate Limiting
 

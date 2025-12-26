@@ -18,14 +18,16 @@ The prompt contains these sections:
 ```markdown
 ## CRITICAL: Tool Usage
 
-You MUST call the `read_schema` tool FIRST before responding. 
+You MUST call the `read_schema` tool FIRST before responding.
 Do NOT output any text before calling the tool.
 
 **Wrong behavior:**
-- Saying "I will call read_schema..." 
+
+- Saying "I will call read_schema..."
 - Explaining what you're about to do
 
 **Correct behavior:**
+
 - Immediately call `read_schema` tool
 - Wait for schema data
 - Then generate your JSON response
@@ -95,9 +97,11 @@ The prompt is loaded at agent initialization, so changes require a restart.
 
 ```markdown
 **Wrong behavior:**
-- Saying "I will call read_schema..." 
+
+- Saying "I will call read_schema..."
 
 **Correct behavior:**
+
 - Immediately call `read_schema` tool
 ```
 
@@ -113,14 +117,15 @@ Concrete examples are more effective than abstract rules:
 3. You respond:
 
 {
-  "message": "",
-  "queries": [...]
+"message": "",
+"queries": [...]
 }
 ```
 
 ### Keep It Focused
 
 The prompt should be:
+
 - Concise but complete
 - Action-oriented
 - Example-rich
@@ -128,9 +133,9 @@ The prompt should be:
 
 ## Common Issues
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Agent says "I will call..." | LLM thinking out loud | Add explicit "no text before tool" rule |
-| Invalid JSON in response | Missing format specification | Add JSON examples |
-| Wrong table/column names | Guessing instead of reading schema | Emphasize "ALWAYS call read_schema first" |
-| Markdown around JSON | LLM adding code blocks | Add "no markdown formatting" rule |
+| Issue                       | Cause                              | Fix                                       |
+| --------------------------- | ---------------------------------- | ----------------------------------------- |
+| Agent says "I will call..." | LLM thinking out loud              | Add explicit "no text before tool" rule   |
+| Invalid JSON in response    | Missing format specification       | Add JSON examples                         |
+| Wrong table/column names    | Guessing instead of reading schema | Emphasize "ALWAYS call read_schema first" |
+| Markdown around JSON        | LLM adding code blocks             | Add "no markdown formatting" rule         |

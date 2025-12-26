@@ -26,20 +26,21 @@ make run
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `make run` | Run the application |
+| Command      | Description                 |
+| ------------ | --------------------------- |
+| `make run`   | Run the application         |
 | `make build` | Build binary to `bin/alodb` |
-| `make tidy` | Download dependencies |
-| `make test` | Run tests |
-| `make clean` | Remove build artifacts |
+| `make tidy`  | Download dependencies       |
+| `make test`  | Run tests                   |
+| `make clean` | Remove build artifacts      |
 
 ## Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GOOGLE_API_KEY` | Gemini API key | Yes |
-| `SERVER_PORT` | HTTP server port | Yes |
+| Variable         | Description                                      | Required | Default      |
+| ---------------- | ------------------------------------------------ | -------- | ------------ |
+| `GOOGLE_API_KEY` | Gemini API key                                   | Yes      | -            |
+| `SERVER_PORT`    | HTTP server port                                 | Yes      | -            |
+| `SERVER_ENV`     | Environment mode (`development` or `production`) | No       | `production` |
 
 ## Testing
 
@@ -78,22 +79,36 @@ curl http://localhost:8080/v1/health
 
 ## Debugging
 
-Log output shows the request flow:
+### Logging
+
+The application uses [zerolog](https://github.com/rs/zerolog) for structured logging.
+
+**Development mode** (`SERVER_ENV=development`): Pretty console output with colors
 
 ```
-[CHAT] Processing request: message=Show me users
-[CHAT] Running agent...
-[TOOL] read_schema called
-[EVENT #1] author=model hasFuncCall=true
-[EVENT #2] author=tool hasFuncResp=true
-[EVENT #3] author=model hasText=true
-[CHAT] Agent completed with 3 events
+12:34:56 INF server starting port=8080
+12:34:57 DBG processing chat request message="Show me users" has_connection=true
+12:34:57 DBG read_schema tool called
+12:34:58 DBG agent event event=1 author=model func_call=true func=read_schema
+12:34:58 INF schema extracted tables=5
+12:34:58 DBG agent completed event_count=3
+```
+
+**Production mode** (`SERVER_ENV=production`): JSON structured logging
+
+```json
+{
+  "level": "info",
+  "port": "8080",
+  "time": 1234567890,
+  "message": "server starting"
+}
 ```
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| "No response generated" | LLM didn't produce text | Check API key and prompt |
-| "Connection refused" | Database not running | Start PostgreSQL |
-| "No database connection" | Missing connection string | Include in request |
+| Issue                    | Cause                     | Solution                 |
+| ------------------------ | ------------------------- | ------------------------ |
+| "No response generated"  | LLM didn't produce text   | Check API key and prompt |
+| "Connection refused"     | Database not running      | Start PostgreSQL         |
+| "No database connection" | Missing connection string | Include in request       |

@@ -82,12 +82,12 @@ content := genai.NewContentFromText(req.Message, genai.RoleUser)
 
 ## What the LLM Sees
 
-| Data | Visible to LLM? |
-|------|-----------------|
-| User message | ✅ Yes |
-| Connection string | ❌ No |
-| Database schema | ✅ Yes (via tool result) |
-| Query results | ❌ No (not implemented yet) |
+| Data              | Visible to LLM?             |
+| ----------------- | --------------------------- |
+| User message      | ✅ Yes                      |
+| Connection string | ❌ No                       |
+| Database schema   | ✅ Yes (via tool result)    |
+| Query results     | ❌ No (not implemented yet) |
 
 ## Session Security
 
@@ -100,6 +100,7 @@ content := genai.NewContentFromText(req.Message, genai.RoleUser)
 ### Session Isolation
 
 Each session is isolated:
+
 - Separate conversation history
 - No cross-session data access
 - Session ID required for follow-up requests
@@ -109,6 +110,7 @@ Each session is isolated:
 ### Request Validation
 
 The handler validates:
+
 - JSON body structure
 - Required fields present
 - Non-empty message
@@ -116,6 +118,7 @@ The handler validates:
 ### SQL Injection Prevention
 
 The agent generates SQL queries but **does not execute them**. The client is responsible for:
+
 - Reviewing generated queries
 - Using parameterized queries for execution
 - Implementing proper access controls
@@ -125,6 +128,7 @@ The agent generates SQL queries but **does not execute them**. The client is res
 ### 1. Use HTTPS
 
 Always deploy behind HTTPS to encrypt:
+
 - Connection strings in transit
 - API requests and responses
 
@@ -143,6 +147,7 @@ Always deploy behind HTTPS to encrypt:
 ### 4. API Security (Future)
 
 Planned features:
+
 - API key authentication
 - Rate limiting
 - Request logging and auditing

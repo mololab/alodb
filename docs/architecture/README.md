@@ -24,28 +24,28 @@ AloDB follows Domain-Driven Design (DDD) with clean separation of concerns.
 
 Pure business objects with no external dependencies.
 
-| Package | Purpose |
-|---------|---------|
-| `agent/types.go` | Chat request/response models |
-| `database/types.go` | Database schema types |
+| Package             | Purpose                      |
+| ------------------- | ---------------------------- |
+| `agent/types.go`    | Chat request/response models |
+| `database/types.go` | Database schema types        |
 
 ### Application Layer (`internal/application/`)
 
 Orchestrates domain objects and infrastructure.
 
-| Package | Purpose |
-|---------|---------|
+| Package            | Purpose                            |
+| ------------------ | ---------------------------------- |
 | `agent/service.go` | Agent service - lifecycle and chat |
 
 ### Infrastructure Layer (`internal/infrastructure/`)
 
 External systems and implementations.
 
-| Package | Purpose |
-|---------|---------|
-| `agent/` | Google ADK agent |
+| Package   | Purpose               |
+| --------- | --------------------- |
+| `agent/`  | Google ADK agent      |
 | `config/` | Configuration (Viper) |
-| `web/` | HTTP server, handlers |
+| `web/`    | HTTP server, handlers |
 
 ## Project Structure
 
@@ -94,9 +94,9 @@ See [request-flow.md](./request-flow.md) for detailed flow.
 
 ## Design Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| DDD Layers | Test business logic without infrastructure |
-| Context-based credentials | Connection strings never reach LLM |
-| External prompts | Modify agent behavior without code changes |
-| Modular agent package | Each file has single responsibility |
+| Decision                  | Rationale                                  |
+| ------------------------- | ------------------------------------------ |
+| DDD Layers                | Test business logic without infrastructure |
+| Context-based credentials | Connection strings never reach LLM         |
+| External prompts          | Modify agent behavior without code changes |
+| Modular agent package     | Each file has single responsibility        |

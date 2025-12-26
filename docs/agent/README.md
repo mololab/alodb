@@ -50,13 +50,13 @@ The agent is an LLM-powered assistant that:
 
 ## Components
 
-| Component | Package | Purpose |
-|-----------|---------|---------|
-| **Model** | `google.golang.org/adk/model/gemini` | Gemini LLM interface |
-| **LLMAgent** | `google.golang.org/adk/agent/llmagent` | Agent with instructions and tools |
-| **Runner** | `google.golang.org/adk/runner` | Executes agent, manages sessions |
-| **Session** | `google.golang.org/adk/session` | In-memory session storage |
-| **FunctionTool** | `google.golang.org/adk/tool/functiontool` | Wraps Go functions as LLM tools |
+| Component        | Package                                   | Purpose                           |
+| ---------------- | ----------------------------------------- | --------------------------------- |
+| **Model**        | `google.golang.org/adk/model/gemini`      | Gemini LLM interface              |
+| **LLMAgent**     | `google.golang.org/adk/agent/llmagent`    | Agent with instructions and tools |
+| **Runner**       | `google.golang.org/adk/runner`            | Executes agent, manages sessions  |
+| **Session**      | `google.golang.org/adk/session`           | In-memory session storage         |
+| **FunctionTool** | `google.golang.org/adk/tool/functiontool` | Wraps Go functions as LLM tools   |
 
 ## Agent Package Structure
 
@@ -77,11 +77,11 @@ internal/infrastructure/agent/
 
 The agent produces events during execution:
 
-| Event Type | Description |
-|------------|-------------|
-| FunctionCall | Agent decides to call a tool |
-| FunctionResponse | Tool returns result to agent |
-| Text (Model) | Agent generates text response |
+| Event Type       | Description                   |
+| ---------------- | ----------------------------- |
+| FunctionCall     | Agent decides to call a tool  |
+| FunctionResponse | Tool returns result to agent  |
+| Text (Model)     | Agent generates text response |
 
 **Critical**: We only capture the **last model text response** (after all tools complete).
 
@@ -101,11 +101,11 @@ for event, err := range events {
 
 The agent is configured via:
 
-| Config | Source | Description |
-|--------|--------|-------------|
-| `GOOGLE_API_KEY` | Environment | Gemini API authentication |
-| `ModelName` | Code default | `gemini-2.0-flash` |
-| Instruction | `prompts/agent_instruction.md` | System prompt |
+| Config           | Source                         | Description               |
+| ---------------- | ------------------------------ | ------------------------- |
+| `GOOGLE_API_KEY` | Environment                    | Gemini API authentication |
+| `ModelName`      | Code default                   | `gemini-2.0-flash`        |
+| Instruction      | `prompts/agent_instruction.md` | System prompt             |
 
 ## Further Reading
 
