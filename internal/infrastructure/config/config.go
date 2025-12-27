@@ -1,26 +1,20 @@
 package config
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
+	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	"github.com/spf13/viper"
 )
 
-// Default values
 const (
 	DefaultSchemaCacheTTL = 1 * time.Hour
 )
 
 type Config struct {
-	Google GoogleConfig
-	Server ServerConfig
-	Agent  AgentConfig
-}
-
-type GoogleConfig struct {
-	APIKey string
+	Server    ServerConfig
+	Agent     AgentConfig
+	Providers map[domainAgent.Provider]string
 }
 
 type ServerConfig struct {
@@ -51,10 +45,6 @@ func Load() (config Config, err error) {
 		return Config{}, err
 	}
 
-	// Google
-	config.Google.APIKey = viper.GetString("GOOGLE_API_KEY")
-
-	// Server
 	config.Server.Port = viper.GetString("SERVER_PORT")
 	config.Server.UIBaseURL = viper.GetString("SERVER_UIBASEURL")
 	config.Server.Env = viper.GetString("SERVER_ENV")
@@ -62,16 +52,26 @@ func Load() (config Config, err error) {
 		config.Server.Env = "production"
 	}
 
-	// Agent
 	config.Agent.SchemaCacheTTL = parseDuration(
 		viper.GetString("SCHEMA_CACHE_TTL"),
 		DefaultSchemaCacheTTL,
 	)
 
-	jss, _ := json.Marshal(config)
-	fmt.Println(string(jss))
+	config.Providers = loadProviders()
 
 	return config, nil
+}
+
+func loadProviders() map[domainAgent.Provider]string {
+	providers := make(map[domainAgent.Provider]string)
+
+	for provider, cfg := range domainAgent.ProviderRegistry {
+		if key := viper.GetString(cfg.EnvKey); key != "" {
+			providers[provider] = key
+		}
+	}
+
+	return providers
 }
 
 // parseDuration parses a duration string, returns default if invalid or empty

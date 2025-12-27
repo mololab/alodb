@@ -41,11 +41,11 @@ Orchestrates domain objects and infrastructure.
 
 External systems and implementations.
 
-| Package   | Purpose               |
-| --------- | --------------------- |
-| `agent/`  | Google ADK agent      |
-| `config/` | Configuration (Viper) |
-| `web/`    | HTTP server, handlers |
+| Package   | Purpose                            |
+| --------- | ---------------------------------- |
+| `agent/`  | Multi-model ADK agent with manager |
+| `config/` | Configuration (Viper)              |
+| `web/`    | HTTP server, handlers              |
 
 ## Project Structure
 
@@ -65,6 +65,7 @@ alodb/
 │   │       └── types.go
 │   └── infrastructure/
 │       ├── agent/
+│       │   ├── manager.go      # Multi-model agent manager
 │       │   ├── db_agent.go     # Agent constructor
 │       │   ├── chat.go         # Chat handling
 │       │   ├── events.go       # Event utilities

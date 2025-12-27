@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	"github.com/mololab/alodb/pkg/logger"
 
 	"google.golang.org/adk/agent/llmagent"
+	"google.golang.org/adk/model"
 	"google.golang.org/adk/model/gemini"
 	"google.golang.org/adk/runner"
 	"google.golang.org/adk/session"
@@ -16,38 +18,43 @@ import (
 	"google.golang.org/genai"
 )
 
-// Agent configuration constants
 const (
 	agentName           = "alodb_agent"
 	agentDescription    = "A database assistant that helps users understand their database schema and generate SQL queries."
-	defaultModelName    = "gemini-3-pro-preview"
 	instructionFilePath = "prompts/agent_instruction.md"
 )
 
-// NewDBAgent creates a new database agent
-func NewDBAgent(ctx context.Context, config domainAgent.AgentConfig) (*DBAgent, error) {
-	if config.GoogleAPIKey == "" {
-		return nil, fmt.Errorf("google API key is required")
+type AgentParams struct {
+	ModelSlug      string
+	APIKey         string
+	SchemaCacheTTL time.Duration
+	SessionService session.Service
+}
+
+func NewDBAgent(ctx context.Context, params AgentParams) (*DBAgent, error) {
+	modelInfo, ok := domainAgent.GetModelBySlug(params.ModelSlug)
+	if !ok {
+		return nil, fmt.Errorf("unknown model: %s", params.ModelSlug)
 	}
 
-	if config.ModelName == "" {
-		config.ModelName = defaultModelName
+	if params.APIKey == "" {
+		return nil, fmt.Errorf("API key is required for provider: %s", modelInfo.Provider)
 	}
 
 	instruction, err := loadInstruction()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load agent instruction: %w", err)
 	}
-	logger.Debug().
-		Int("instruction_bytes", len(instruction)).
-		Dur("cache_ttl", config.SchemaCacheTTL).
-		Msg("agent config loaded")
 
-	model, err := gemini.NewModel(ctx, config.ModelName, &genai.ClientConfig{
-		APIKey: config.GoogleAPIKey,
-	})
+	logger.Debug().
+		Str("model", params.ModelSlug).
+		Str("provider", string(modelInfo.Provider)).
+		Int("instruction_bytes", len(instruction)).
+		Msg("creating agent")
+
+	llmModel, err := createModel(ctx, modelInfo, params.APIKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create gemini model: %w", err)
+		return nil, err
 	}
 
 	tools, err := createTools()
@@ -57,7 +64,7 @@ func NewDBAgent(ctx context.Context, config domainAgent.AgentConfig) (*DBAgent, 
 
 	dbAgent, err := llmagent.New(llmagent.Config{
 		Name:        agentName,
-		Model:       model,
+		Model:       llmModel,
 		Description: agentDescription,
 		Instruction: instruction,
 		Tools:       tools,
@@ -66,12 +73,10 @@ func NewDBAgent(ctx context.Context, config domainAgent.AgentConfig) (*DBAgent, 
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
 
-	sessionService := session.InMemoryService()
-
 	agentRunner, err := runner.New(runner.Config{
 		AppName:        agentName,
 		Agent:          dbAgent,
-		SessionService: sessionService,
+		SessionService: params.SessionService,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create runner: %w", err)
@@ -80,13 +85,25 @@ func NewDBAgent(ctx context.Context, config domainAgent.AgentConfig) (*DBAgent, 
 	return &DBAgent{
 		agent:          dbAgent,
 		runner:         agentRunner,
-		sessionService: sessionService,
-		config:         config,
-		schemaCacheTTL: config.SchemaCacheTTL,
+		sessionService: params.SessionService,
+		modelSlug:      params.ModelSlug,
+		schemaCacheTTL: params.SchemaCacheTTL,
 	}, nil
 }
 
-// loadInstruction loads the agent instruction from the prompts file
+func createModel(ctx context.Context, m domainAgent.Model, apiKey string) (model.LLM, error) {
+	switch m.Provider {
+	case domainAgent.ProviderGoogle:
+		return gemini.NewModel(ctx, m.Slug, &genai.ClientConfig{
+			APIKey: apiKey,
+		})
+	case domainAgent.ProviderOpenAI:
+		return nil, fmt.Errorf("OpenAI provider not yet supported")
+	default:
+		return nil, fmt.Errorf("unsupported provider: %s", m.Provider)
+	}
+}
+
 func loadInstruction() (string, error) {
 	data, err := os.ReadFile(instructionFilePath)
 	if err != nil {
@@ -95,7 +112,6 @@ func loadInstruction() (string, error) {
 	return string(data), nil
 }
 
-// createTools creates all tools for the agent
 func createTools() ([]tool.Tool, error) {
 	schemaReaderTool, err := createSchemaReaderTool()
 	if err != nil {
@@ -107,7 +123,10 @@ func createTools() ([]tool.Tool, error) {
 	}, nil
 }
 
-// Close cleans up the agent resources
 func (a *DBAgent) Close() error {
 	return nil
+}
+
+func (a *DBAgent) ModelSlug() string {
+	return a.modelSlug
 }

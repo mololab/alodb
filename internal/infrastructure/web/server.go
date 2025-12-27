@@ -1,8 +1,6 @@
 package web
 
 import (
-	"context"
-
 	agentApp "github.com/mololab/alodb/internal/application/agent"
 	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	"github.com/mololab/alodb/internal/infrastructure/config"
@@ -11,15 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Server represents the HTTP server
 type Server struct {
 	router       *gin.Engine
 	config       *config.Config
 	agentService *agentApp.Service
 }
 
-// CORSMiddleware allows all origins for the initial state
-// FUTURE TODO: make origin specific
 func CORSMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Header("Access-Control-Allow-Origin", "*")
@@ -36,19 +31,16 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-// NewServer creates a new HTTP server
 func NewServer(cfg *config.Config) *Server {
 	router := gin.Default()
 
 	router.Use(CORSMiddleware())
 
-	// create agent service
 	agentService := agentApp.NewService(domainAgent.AgentConfig{
-		GoogleAPIKey:   cfg.Google.APIKey,
+		Providers:      cfg.Providers,
 		SchemaCacheTTL: cfg.Agent.SchemaCacheTTL,
 	})
 
-	// setup routes
 	setupRoutes(router, agentService)
 
 	return &Server{
@@ -58,7 +50,6 @@ func NewServer(cfg *config.Config) *Server {
 	}
 }
 
-// setupRoutes configures all the routes
 func setupRoutes(router *gin.Engine, agentService *agentApp.Service) {
 	agentHandler := handlers.NewAgentHandler(agentService)
 
@@ -68,6 +59,8 @@ func setupRoutes(router *gin.Engine, agentService *agentApp.Service) {
 			c.JSON(200, gin.H{"status": "healthy"})
 		})
 
+		v1.GET("/models", agentHandler.GetModels)
+
 		agent := v1.Group("/agent")
 		{
 			agent.POST("/chat", agentHandler.Chat)
@@ -75,16 +68,10 @@ func setupRoutes(router *gin.Engine, agentService *agentApp.Service) {
 	}
 }
 
-// Start starts the HTTP server
-func (s *Server) Start(ctx context.Context) error {
-	if err := s.agentService.Initialize(ctx); err != nil {
-		return err
-	}
-
+func (s *Server) Start() error {
 	return s.router.Run(":" + s.config.Server.Port)
 }
 
-// Stop gracefully stops the server
 func (s *Server) Stop() error {
 	if s.agentService != nil {
 		return s.agentService.Close()

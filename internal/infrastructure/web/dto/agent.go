@@ -2,30 +2,28 @@ package dto
 
 import domainAgent "github.com/mololab/alodb/internal/domain/agent"
 
-// ChatRequest represents the incoming chat request from the API
 type ChatRequest struct {
 	SessionID        string `json:"session_id,omitempty"`
 	Message          string `json:"message" binding:"required"`
 	ConnectionString string `json:"connection_string" binding:"required"`
+	Model            string `json:"model,omitempty"`
 }
 
-// ToDomain converts the DTO to a domain object
 func (r *ChatRequest) ToDomain() domainAgent.ChatRequest {
 	return domainAgent.ChatRequest{
 		SessionID:        r.SessionID,
 		Message:          r.Message,
 		ConnectionString: r.ConnectionString,
+		Model:            r.Model,
 	}
 }
 
-// Query represents a SQL query in the API response
 type Query struct {
 	Title       string `json:"title"`
 	Query       string `json:"query"`
 	Description string `json:"description"`
 }
 
-// ChatResponse represents the API response
 type ChatResponse struct {
 	Success   bool    `json:"success"`
 	SessionID string  `json:"session_id,omitempty"`
@@ -34,7 +32,6 @@ type ChatResponse struct {
 	Error     string  `json:"error,omitempty"`
 }
 
-// FromDomain creates a ChatResponse from a domain response
 func ChatResponseFromDomain(resp *domainAgent.ChatResponse) ChatResponse {
 	var queries []Query
 	for _, q := range resp.Queries {
@@ -53,10 +50,35 @@ func ChatResponseFromDomain(resp *domainAgent.ChatResponse) ChatResponse {
 	}
 }
 
-// ErrorResponse creates an error response
 func ErrorResponse(err string) ChatResponse {
 	return ChatResponse{
 		Success: false,
 		Error:   err,
 	}
+}
+
+type Model struct {
+	Slug     string `json:"slug"`
+	Name     string `json:"name"`
+	Provider string `json:"provider"`
+}
+
+type ModelsResponse struct {
+	Models []Model `json:"models"`
+}
+
+func ModelsResponseFromDomain(models []domainAgent.Model) ModelsResponse {
+	result := ModelsResponse{
+		Models: make([]Model, len(models)),
+	}
+
+	for i, m := range models {
+		result.Models[i] = Model{
+			Slug:     m.Slug,
+			Name:     m.Name,
+			Provider: string(m.Provider),
+		}
+	}
+
+	return result
 }

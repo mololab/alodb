@@ -10,6 +10,46 @@ http://localhost:{SERVER_PORT}/v1
 
 ## Endpoints
 
+### GET /v1/models
+
+Returns available AI models based on configured API keys.
+
+#### Request
+
+```bash
+curl http://localhost:8080/v1/models
+```
+
+#### Response
+
+**Success (200):**
+
+```json
+{
+  "models": [
+    {
+      "slug": "gemini-2.5-pro-preview-06-05",
+      "name": "Gemini 2.5 Pro",
+      "provider": "google"
+    },
+    {
+      "slug": "gemini-2.5-flash-preview-05-20",
+      "name": "Gemini 2.5 Flash",
+      "provider": "google"
+    }
+  ]
+}
+```
+
+| Field               | Type   | Description                              |
+| ------------------- | ------ | ---------------------------------------- |
+| `models`            | array  | List of available models                 |
+| `models[].slug`     | string | Model identifier to use in chat requests |
+| `models[].name`     | string | Human-readable model name                |
+| `models[].provider` | string | Provider name (google, openai)           |
+
+---
+
 ### POST /v1/agent/chat
 
 Chat with the database agent to generate SQL queries.
@@ -31,6 +71,16 @@ Content-Type: application/json
 }
 ```
 
+**Body (with specific model):**
+
+```json
+{
+  "message": "Show me all users with their orders",
+  "connection_string": "postgres://user:pass@localhost:5432/mydb",
+  "model": "gemini-2.5-flash-preview-05-20"
+}
+```
+
 **Body (continue session):**
 
 ```json
@@ -41,11 +91,23 @@ Content-Type: application/json
 }
 ```
 
-| Field               | Type   | Required | Description                                          |
-| ------------------- | ------ | -------- | ---------------------------------------------------- |
-| `message`           | string | Yes      | Natural language query                               |
-| `connection_string` | string | Yes      | PostgreSQL connection URL                            |
-| `session_id`        | string | No       | UUID from previous response to continue conversation |
+**Body (switch model mid-conversation):**
+
+```json
+{
+  "message": "Now filter by active users only",
+  "connection_string": "postgres://user:pass@localhost:5432/mydb",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "model": "gemini-2.0-flash"
+}
+```
+
+| Field               | Type   | Required | Description                                                           |
+| ------------------- | ------ | -------- | --------------------------------------------------------------------- |
+| `message`           | string | Yes      | Natural language query                                                |
+| `connection_string` | string | Yes      | PostgreSQL connection URL                                             |
+| `session_id`        | string | No       | UUID from previous response to continue conversation                  |
+| `model`             | string | No       | Model slug from /v1/models (defaults to gemini-2.5-pro-preview-06-05) |
 
 #### Response
 

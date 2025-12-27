@@ -38,9 +38,12 @@ make run
 
 | Variable         | Description                                      | Required | Default      |
 | ---------------- | ------------------------------------------------ | -------- | ------------ |
-| `GOOGLE_API_KEY` | Gemini API key                                   | Yes      | -            |
+| `GOOGLE_API_KEY` | Gemini API key                                   | No*      | -            |
+| `OPENAI_API_KEY` | OpenAI API key                                   | No*      | -            |
 | `SERVER_PORT`    | HTTP server port                                 | Yes      | -            |
 | `SERVER_ENV`     | Environment mode (`development` or `production`) | No       | `production` |
+
+*At least one provider API key is required. Available models are determined by which API keys are configured.
 
 ## Testing
 

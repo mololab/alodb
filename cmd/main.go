@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"os/signal"
@@ -24,11 +23,8 @@ func main() {
 	server := web.NewServer(&cfg)
 	logger.Info().Str("port", cfg.Server.Port).Msg("server starting")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	go func() {
-		if err := server.Start(ctx); err != nil && err != http.ErrServerClosed {
+		if err := server.Start(); err != nil && err != http.ErrServerClosed {
 			logger.Error().Err(err).Msg("server error")
 		}
 	}()
@@ -38,8 +34,6 @@ func main() {
 	<-quit
 
 	logger.Info().Msg("shutting down server")
-
-	cancel()
 
 	if err := server.Stop(); err != nil {
 		logger.Error().Err(err).Msg("error stopping server")

@@ -3,73 +3,51 @@ package agent
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	infraAgent "github.com/mololab/alodb/internal/infrastructure/agent"
 	"github.com/mololab/alodb/pkg/logger"
 )
 
-// Service handles agent operations
 type Service struct {
-	config domainAgent.AgentConfig
-	agent  *infraAgent.DBAgent
-	mu     sync.RWMutex
+	config  domainAgent.AgentConfig
+	manager *infraAgent.Manager
 }
 
-// NewService creates a new agent service
 func NewService(config domainAgent.AgentConfig) *Service {
 	return &Service{
-		config: config,
+		config:  config,
+		manager: infraAgent.NewManager(config.Providers, config.SchemaCacheTTL),
 	}
 }
 
-// Initialize initializes the agent
-func (s *Service) Initialize(ctx context.Context) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.agent != nil {
-		return nil
-	}
-
-	logger.Info().Msg("initializing agent")
-	agent, err := infraAgent.NewDBAgent(ctx, s.config)
-	if err != nil {
-		logger.Error().Err(err).Msg("failed to initialize agent")
-		return fmt.Errorf("failed to initialize agent: %w", err)
-	}
-
-	s.agent = agent
-	logger.Info().Msg("agent initialized successfully")
-	return nil
-}
-
-// Chat sends a message to the agent and returns the response
 func (s *Service) Chat(ctx context.Context, req domainAgent.ChatRequest) (*domainAgent.ChatResponse, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if s.agent == nil {
-		logger.Error().Msg("chat called before agent initialization")
-		return nil, fmt.Errorf("agent not initialized")
+	modelSlug := req.Model
+	if modelSlug == "" {
+		modelSlug = domainAgent.GetDefaultModelSlug()
 	}
 
-	logger.Debug().Str("session_id", req.SessionID).Msg("processing chat request")
-	return s.agent.Chat(ctx, req)
+	agent, err := s.manager.GetAgent(ctx, modelSlug)
+	if err != nil {
+		logger.Error().Err(err).Str("model", modelSlug).Msg("failed to get agent")
+		return nil, fmt.Errorf("failed to get agent for model %s: %w", modelSlug, err)
+	}
+
+	logger.Debug().
+		Str("session_id", req.SessionID).
+		Str("model", modelSlug).
+		Msg("processing chat request")
+
+	return agent.Chat(ctx, req)
 }
 
-// Close cleans up the agent resources
+func (s *Service) GetAvailableModels() []domainAgent.Model {
+	return s.manager.GetAvailableModels()
+}
+
 func (s *Service) Close() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.agent != nil {
-		if err := s.agent.Close(); err != nil {
-			return err
-		}
-		s.agent = nil
+	if s.manager != nil {
+		return s.manager.Close()
 	}
-
 	return nil
 }
