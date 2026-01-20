@@ -1,5 +1,7 @@
 package agent
 
+import "sort"
+
 type Provider string
 
 const (
@@ -24,20 +26,34 @@ var GoogleModels = []Model{
 
 var OpenAIModels = []Model{}
 
+type ProviderMetadata struct {
+	Name        string
+	Description string
+}
+
 type ProviderConfig struct {
 	HeaderKey string
+	Metadata  ProviderMetadata
 	Models    []Model
 }
 
 var ProviderRegistry = map[Provider]ProviderConfig{
 	ProviderGoogle: {
 		HeaderKey: "X-Gemini-Api-Key",
-		Models:    GoogleModels,
+		Metadata: ProviderMetadata{
+			Name:        "Google Gemini",
+			Description: "Google's Gemini family of multimodal AI models",
+		},
+		Models: GoogleModels,
 	},
 	// TODO: add when adk supports openai
 	ProviderOpenAI: {
 		HeaderKey: "X-Openai-Api-Key",
-		Models:    OpenAIModels,
+		Metadata: ProviderMetadata{
+			Name:        "OpenAI",
+			Description: "OpenAI's GPT family of language models",
+		},
+		Models: OpenAIModels,
 	},
 }
 
@@ -62,9 +78,10 @@ func GetProviderByModel(model Model) (ProviderConfig, bool) {
 }
 
 type ProviderModels struct {
-	Provider  Provider `json:"provider"`
-	HeaderKey string   `json:"header_key"`
-	Models    []Model  `json:"models"`
+	Provider  Provider         `json:"provider"`
+	HeaderKey string           `json:"header_key"`
+	Metadata  ProviderMetadata `json:"metadata"`
+	Models    []Model          `json:"models"`
 }
 
 func GetAllProviderModels() []ProviderModels {
@@ -78,9 +95,14 @@ func GetAllProviderModels() []ProviderModels {
 		result = append(result, ProviderModels{
 			Provider:  provider,
 			HeaderKey: cfg.HeaderKey,
+			Metadata:  cfg.Metadata,
 			Models:    cfg.Models,
 		})
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Metadata.Name < result[j].Metadata.Name
+	})
 
 	return result
 }

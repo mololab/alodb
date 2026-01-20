@@ -64,9 +64,15 @@ type Model struct {
 	Provider string `json:"provider"`
 }
 
+type ProviderMetadata struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 type ProviderModelsResponse struct {
-	HeaderKey string  `json:"header_key"`
-	Models    []Model `json:"models"`
+	HeaderKey string           `json:"header_key"`
+	Metadata  ProviderMetadata `json:"metadata"`
+	Models    []Model          `json:"models"`
 }
 
 type ModelsResponse struct {
@@ -90,7 +96,11 @@ func ModelsResponseFromDomain(providerModels []domainAgent.ProviderModels) Model
 
 		result.Providers = append(result.Providers, ProviderModelsResponse{
 			HeaderKey: pm.HeaderKey,
-			Models:    models,
+			Metadata: ProviderMetadata{
+				Name:        pm.Metadata.Name,
+				Description: pm.Metadata.Description,
+			},
+			Models: models,
 		})
 	}
 

@@ -38,6 +38,10 @@ curl http://localhost:8080/v1/models
   "providers": [
     {
       "header_key": "X-Gemini-Api-Key",
+      "metadata": {
+        "name": "Google Gemini",
+        "description": "Google's Gemini family of multimodal AI models"
+      },
       "models": [
         {
           "slug": "gemini-2.5-pro",
@@ -55,14 +59,17 @@ curl http://localhost:8080/v1/models
 }
 ```
 
-| Field                          | Type   | Description                              |
-| ------------------------------ | ------ | ---------------------------------------- |
-| `providers`                    | array  | List of providers with their models      |
-| `providers[].header_key`       | string | HTTP header to send API key              |
-| `providers[].models`           | array  | Available models for this provider       |
-| `providers[].models[].slug`    | string | Model identifier to use in chat requests |
-| `providers[].models[].name`    | string | Human-readable model name                |
-| `providers[].models[].provider`| string | Provider name (google, openai)           |
+| Field                              | Type   | Description                              |
+| ---------------------------------- | ------ | ---------------------------------------- |
+| `providers`                        | array  | List of providers with their models      |
+| `providers[].header_key`           | string | HTTP header to send API key              |
+| `providers[].metadata`             | object | Provider metadata                        |
+| `providers[].metadata.name`        | string | Provider display name                    |
+| `providers[].metadata.description` | string | Provider description                     |
+| `providers[].models`               | array  | Available models for this provider       |
+| `providers[].models[].slug`        | string | Model identifier to use in chat requests |
+| `providers[].models[].name`        | string | Human-readable model name                |
+| `providers[].models[].provider`    | string | Provider name (google, openai)           |
 
 ---
 
@@ -108,11 +115,11 @@ X-Gemini-Api-Key: your-api-key-here
 }
 ```
 
-| Field               | Type   | Required | Description                                       |
-| ------------------- | ------ | -------- | ------------------------------------------------- |
-| `message`           | string | Yes      | Natural language query                            |
-| `connection_string` | string | Yes      | PostgreSQL connection URL                         |
-| `session_id`        | string | No       | UUID from previous response to continue session   |
+| Field               | Type   | Required | Description                                              |
+| ------------------- | ------ | -------- | -------------------------------------------------------- |
+| `message`           | string | Yes      | Natural language query                                   |
+| `connection_string` | string | Yes      | PostgreSQL connection URL                                |
+| `session_id`        | string | No       | UUID from previous response to continue session          |
 | `model`             | string | No       | Model slug from /v1/models (defaults to first available) |
 
 #### Response
@@ -270,12 +277,12 @@ postgres://username:password@host:port/database?sslmode=disable
 
 ## Error Codes
 
-| Status | Meaning                                         |
-| ------ | ----------------------------------------------- |
-| 200    | Success                                         |
-| 400    | Bad request (invalid JSON, missing fields)      |
-| 401    | Unauthorized (missing or invalid API key header)|
-| 500    | Internal server error                           |
+| Status | Meaning                                          |
+| ------ | ------------------------------------------------ |
+| 200    | Success                                          |
+| 400    | Bad request (invalid JSON, missing fields)       |
+| 401    | Unauthorized (missing or invalid API key header) |
+| 500    | Internal server error                            |
 
 ## Rate Limiting
 
