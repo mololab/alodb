@@ -3,7 +3,6 @@ package config
 import (
 	"time"
 
-	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	"github.com/spf13/viper"
 )
 
@@ -12,9 +11,8 @@ const (
 )
 
 type Config struct {
-	Server    ServerConfig
-	Agent     AgentConfig
-	Providers map[domainAgent.Provider]string
+	Server ServerConfig
+	Agent  AgentConfig
 }
 
 type ServerConfig struct {
@@ -57,21 +55,7 @@ func Load() (config Config, err error) {
 		DefaultSchemaCacheTTL,
 	)
 
-	config.Providers = loadProviders()
-
 	return config, nil
-}
-
-func loadProviders() map[domainAgent.Provider]string {
-	providers := make(map[domainAgent.Provider]string)
-
-	for provider, cfg := range domainAgent.ProviderRegistry {
-		if key := viper.GetString(cfg.EnvKey); key != "" {
-			providers[provider] = key
-		}
-	}
-
-	return providers
 }
 
 // parseDuration parses a duration string, returns default if invalid or empty

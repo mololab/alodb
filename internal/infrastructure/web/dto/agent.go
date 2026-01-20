@@ -9,12 +9,13 @@ type ChatRequest struct {
 	Model            string `json:"model,omitempty"`
 }
 
-func (r *ChatRequest) ToDomain() domainAgent.ChatRequest {
+func (r *ChatRequest) ToDomain(apiKey string) domainAgent.ChatRequest {
 	return domainAgent.ChatRequest{
 		SessionID:        r.SessionID,
 		Message:          r.Message,
 		ConnectionString: r.ConnectionString,
 		Model:            r.Model,
+		APIKey:           apiKey,
 	}
 }
 
@@ -63,21 +64,34 @@ type Model struct {
 	Provider string `json:"provider"`
 }
 
-type ModelsResponse struct {
-	Models []Model `json:"models"`
+type ProviderModelsResponse struct {
+	HeaderKey string  `json:"header_key"`
+	Models    []Model `json:"models"`
 }
 
-func ModelsResponseFromDomain(models []domainAgent.Model) ModelsResponse {
+type ModelsResponse struct {
+	Providers []ProviderModelsResponse `json:"providers"`
+}
+
+func ModelsResponseFromDomain(providerModels []domainAgent.ProviderModels) ModelsResponse {
 	result := ModelsResponse{
-		Models: make([]Model, len(models)),
+		Providers: make([]ProviderModelsResponse, 0, len(providerModels)),
 	}
 
-	for i, m := range models {
-		result.Models[i] = Model{
-			Slug:     m.Slug,
-			Name:     m.Name,
-			Provider: string(m.Provider),
+	for _, pm := range providerModels {
+		models := make([]Model, len(pm.Models))
+		for i, m := range pm.Models {
+			models[i] = Model{
+				Slug:     m.Slug,
+				Name:     m.Name,
+				Provider: string(m.Provider),
+			}
 		}
+
+		result.Providers = append(result.Providers, ProviderModelsResponse{
+			HeaderKey: pm.HeaderKey,
+			Models:    models,
+		})
 	}
 
 	return result

@@ -86,34 +86,11 @@ internal/infrastructure/agent/
     └── schema_reader.go        # Database schema extraction
 ```
 
-### Tool Handler Flow
-
-```go
-func schemaReaderHandler(toolCtx tool.Context, input Input) (Output, error) {
-    // 1. Get connection string from context
-    connStr := toolCtx.Value(connectionStringKey)
-
-    // 2. Check cache
-    schemaCache := cache.NewSchemaCache(ttl)
-    if cached := schemaCache.Get(toolCtx); cached != nil {
-        return cached  // Cache hit!
-    }
-
-    // 3. Cache miss - read from database
-    result := tools.ReadSchemaFromDatabase(connStr)
-
-    // 4. Store in cache for next time
-    schemaCache.Set(toolCtx, result.Schema)
-
-    return result
-}
-```
-
 ## Security
 
 The connection string is **never exposed to the LLM**:
 
-1. Client sends connection string in request
+1. Client sends connection string in request body
 2. Server stores it in Go's `context.Context`
 3. Tool reads it at execution time
 4. LLM only sees the schema result

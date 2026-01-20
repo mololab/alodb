@@ -24,7 +24,6 @@ Do NOT output any text before calling the tool.
 **Wrong behavior:**
 
 - Saying "I will call read_schema..."
-- Explaining what you're about to do
 
 **Correct behavior:**
 
@@ -33,7 +32,7 @@ Do NOT output any text before calling the tool.
 - Then generate your JSON response
 ```
 
-**Why this matters**: LLMs tend to "think out loud". Without explicit instructions to NOT output text before tool calls, the agent would say "I will call the tool..." which gets captured as the response instead of the actual result.
+**Why this matters**: LLMs tend to "think out loud". Without explicit instructions, the agent would say "I will call the tool..." which gets captured as the response instead of the actual result.
 
 ### 2. Available Tools
 
@@ -41,7 +40,7 @@ Lists all tools the agent can call with their purposes.
 
 ### 3. Workflow
 
-Step-by-step process the agent should follow:
+Step-by-step process:
 
 1. Call `read_schema` tool (no text output)
 2. Analyze the returned schema
@@ -49,8 +48,6 @@ Step-by-step process the agent should follow:
 4. Return JSON response
 
 ### 4. Response Format
-
-Specifies the exact JSON structure required:
 
 ```json
 {
@@ -66,8 +63,6 @@ Specifies the exact JSON structure required:
 ```
 
 ### 5. SQL Best Practices
-
-Guidelines for query generation:
 
 - Use table aliases
 - Use explicit JOINs
@@ -89,7 +84,7 @@ Mandatory behaviors that override other instructions.
 2. Make your changes
 3. Restart the server (`make run`)
 
-The prompt is loaded at agent initialization, so changes require a restart.
+The prompt is loaded at agent initialization.
 
 ## Best Practices
 
@@ -107,20 +102,7 @@ The prompt is loaded at agent initialization, so changes require a restart.
 
 ### Use Examples
 
-Concrete examples are more effective than abstract rules:
-
-```markdown
-### Example: User asks "Show me all users"
-
-1. You call: `read_schema` (no text output!)
-2. You receive: schema with users table
-3. You respond:
-
-{
-"message": "",
-"queries": [...]
-}
-```
+Concrete examples are more effective than abstract rules.
 
 ### Keep It Focused
 

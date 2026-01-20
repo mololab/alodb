@@ -22,11 +22,12 @@ The agent is an LLM-powered assistant that:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        DBAgent                                   │
+│                        Manager                                   │
+│              (Caches agents by model + apiKeyHash)               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
-│   │   Gemini    │    │   Runner    │    │   Session   │         │
+│   │   LLM       │    │   Runner    │    │   Session   │         │
 │   │   Model     │    │             │    │   Service   │         │
 │   └─────────────┘    └─────────────┘    └─────────────┘         │
 │          │                  │                  │                 │
@@ -42,7 +43,6 @@ The agent is an LLM-powered assistant that:
 │                             ▼                                    │
 │                    ┌─────────────────┐                           │
 │                    │  read_schema    │                           │
-│                    │  (FunctionTool) │                           │
 │                    └─────────────────┘                           │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -52,6 +52,7 @@ The agent is an LLM-powered assistant that:
 
 | Component        | Package                                   | Purpose                           |
 | ---------------- | ----------------------------------------- | --------------------------------- |
+| **Manager**      | `internal/infrastructure/agent`           | Agent caching and lifecycle       |
 | **Model**        | `google.golang.org/adk/model/gemini`      | Gemini LLM interface              |
 | **LLMAgent**     | `google.golang.org/adk/agent/llmagent`    | Agent with instructions and tools |
 | **Runner**       | `google.golang.org/adk/runner`            | Executes agent, manages sessions  |
@@ -62,16 +63,41 @@ The agent is an LLM-powered assistant that:
 
 ```
 internal/infrastructure/agent/
-├── db_agent.go          # Agent constructor and initialization
-├── chat.go              # Chat execution and event handling
-├── events.go            # Event processing utilities
-├── types.go             # DBAgent struct and context keys
-├── tools.go             # Tool creation functions
+├── manager.go           # Agent caching by model+apiKeyHash
+├── db_agent.go          # Agent constructor
+├── chat.go              # Chat execution
+├── events.go            # Event processing
+├── types.go             # Structs and context keys
+├── tools.go             # Tool creation
+├── cache/
+│   └── schema_cache.go  # Schema caching
 ├── response/
 │   └── parser.go        # JSON response parsing
 └── tools/
     └── schema_reader.go # Schema reader implementation
 ```
+
+## Multi-Model Support
+
+Models are defined in `internal/domain/agent/models.go`:
+
+```go
+var ProviderRegistry = map[Provider]ProviderConfig{
+    ProviderGoogle: {
+        HeaderKey: "X-Gemini-Api-Key",
+        Models:    GoogleModels,
+    },
+    ProviderOpenAI: {
+        HeaderKey: "X-Openai-Api-Key",
+        Models:    OpenAIModels,
+    },
+}
+```
+
+Adding a new provider requires:
+1. Add provider constant and models
+2. Add to `ProviderRegistry` with header key
+3. Implement model creation in `db_agent.go`
 
 ## Event Handling
 
@@ -83,31 +109,18 @@ The agent produces events during execution:
 | FunctionResponse | Tool returns result to agent  |
 | Text (Model)     | Agent generates text response |
 
-**Critical**: We only capture the **last model text response** (after all tools complete).
-
-```go
-// We iterate through ALL events but only keep the last model response
-for event, err := range events {
-    if event.Content.Role == "model" {
-        text := ExtractTextFromEvent(event)
-        if text != "" {
-            lastModelResponse = text  // Keep overwriting until the last one
-        }
-    }
-}
-```
+We only capture the **last model text response** (after all tools complete).
 
 ## Configuration
 
-The agent is configured via:
-
-| Config           | Source                         | Description               |
-| ---------------- | ------------------------------ | ------------------------- |
-| `GOOGLE_API_KEY` | Environment                    | Gemini API authentication |
-| `ModelName`      | Code default                   | `gemini-2.0-flash`        |
-| Instruction      | `prompts/agent_instruction.md` | System prompt             |
+| Config             | Source                         | Description           |
+| ------------------ | ------------------------------ | --------------------- |
+| API Key            | Request header                 | Per-request auth      |
+| Model              | Request body or default        | Which model to use    |
+| Instruction        | `prompts/agent_instruction.md` | System prompt         |
+| Schema Cache TTL   | Environment                    | How long to cache     |
 
 ## Further Reading
 
-- [Tools Documentation](./tools.md) - Available tools and how they work
-- [Prompts Documentation](./prompts.md) - Prompt engineering guidelines
+- [Tools Documentation](./tools.md)
+- [Prompts Documentation](./prompts.md)

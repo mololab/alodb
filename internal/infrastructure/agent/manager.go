@@ -2,6 +2,8 @@ package agent
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -12,40 +14,52 @@ import (
 	"google.golang.org/adk/session"
 )
 
+type cachedAgent struct {
+	agent    *DBAgent
+	lastUsed time.Time
+}
+
 type Manager struct {
-	agents         map[string]*DBAgent
+	agents         map[string]*cachedAgent
 	mu             sync.RWMutex
 	sessionService session.Service
-	providers      map[domainAgent.Provider]string
 	schemaCacheTTL time.Duration
 }
 
-func NewManager(providers map[domainAgent.Provider]string, schemaCacheTTL time.Duration) *Manager {
+func NewManager(schemaCacheTTL time.Duration) *Manager {
 	return &Manager{
-		agents:         make(map[string]*DBAgent),
+		agents:         make(map[string]*cachedAgent),
 		sessionService: session.InMemoryService(),
-		providers:      providers,
 		schemaCacheTTL: schemaCacheTTL,
 	}
 }
 
-func (m *Manager) GetAgent(ctx context.Context, modelSlug string) (*DBAgent, error) {
+func (m *Manager) GetAgent(ctx context.Context, modelSlug string, apiKey string) (*DBAgent, error) {
+	cacheKey := m.buildCacheKey(modelSlug, apiKey)
+
 	m.mu.RLock()
-	if agent, exists := m.agents[modelSlug]; exists {
+	if cached, exists := m.agents[cacheKey]; exists {
+		cached.lastUsed = time.Now()
 		m.mu.RUnlock()
-		return agent, nil
+		return cached.agent, nil
 	}
 	m.mu.RUnlock()
 
-	return m.createAgent(ctx, modelSlug)
+	return m.createAgent(ctx, modelSlug, apiKey, cacheKey)
 }
 
-func (m *Manager) createAgent(ctx context.Context, modelSlug string) (*DBAgent, error) {
+func (m *Manager) buildCacheKey(modelSlug, apiKey string) string {
+	hash := sha256.Sum256([]byte(apiKey))
+	return fmt.Sprintf("%s:%s", modelSlug, hex.EncodeToString(hash[:8]))
+}
+
+func (m *Manager) createAgent(ctx context.Context, modelSlug, apiKey, cacheKey string) (*DBAgent, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if agent, exists := m.agents[modelSlug]; exists {
-		return agent, nil
+	if cached, exists := m.agents[cacheKey]; exists {
+		cached.lastUsed = time.Now()
+		return cached.agent, nil
 	}
 
 	model, ok := domainAgent.GetModelBySlug(modelSlug)
@@ -53,9 +67,9 @@ func (m *Manager) createAgent(ctx context.Context, modelSlug string) (*DBAgent, 
 		return nil, fmt.Errorf("unknown model: %s", modelSlug)
 	}
 
-	apiKey, ok := m.providers[model.Provider]
-	if !ok || apiKey == "" {
-		return nil, fmt.Errorf("provider %s is not configured", model.Provider)
+	if apiKey == "" {
+		providerCfg, _ := domainAgent.GetProviderByModel(model)
+		return nil, fmt.Errorf("API key is required, provide via header: %s", providerCfg.HeaderKey)
 	}
 
 	logger.Info().
@@ -73,41 +87,25 @@ func (m *Manager) createAgent(ctx context.Context, modelSlug string) (*DBAgent, 
 		return nil, err
 	}
 
-	m.agents[modelSlug] = agent
+	m.agents[cacheKey] = &cachedAgent{
+		agent:    agent,
+		lastUsed: time.Now(),
+	}
 	logger.Info().Str("model", modelSlug).Msg("agent initialized")
 
 	return agent, nil
-}
-
-func (m *Manager) GetAvailableModels() []domainAgent.Model {
-	var models []domainAgent.Model
-
-	for provider, apiKey := range m.providers {
-		if apiKey == "" {
-			continue
-		}
-
-		cfg, ok := domainAgent.ProviderRegistry[provider]
-		if !ok {
-			continue
-		}
-
-		models = append(models, cfg.Models...)
-	}
-
-	return models
 }
 
 func (m *Manager) Close() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	for slug, agent := range m.agents {
-		if err := agent.Close(); err != nil {
-			logger.Error().Err(err).Str("model", slug).Msg("error closing agent")
+	for key, cached := range m.agents {
+		if err := cached.agent.Close(); err != nil {
+			logger.Error().Err(err).Str("key", key).Msg("error closing agent")
 		}
 	}
 
-	m.agents = make(map[string]*DBAgent)
+	m.agents = make(map[string]*cachedAgent)
 	return nil
 }

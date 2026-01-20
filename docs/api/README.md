@@ -8,11 +8,20 @@ AloDB exposes a REST API for interacting with the database agent.
 http://localhost:{SERVER_PORT}/v1
 ```
 
+## Authentication
+
+API keys are passed via request headers. Each provider requires its own header:
+
+| Provider | Header Key         |
+| -------- | ------------------ |
+| Google   | `X-Gemini-Api-Key` |
+| OpenAI   | `X-Openai-Api-Key` |
+
 ## Endpoints
 
 ### GET /v1/models
 
-Returns available AI models based on configured API keys.
+Returns all available AI models grouped by provider with required header keys.
 
 #### Request
 
@@ -26,27 +35,34 @@ curl http://localhost:8080/v1/models
 
 ```json
 {
-  "models": [
+  "providers": [
     {
-      "slug": "gemini-2.5-pro-preview-06-05",
-      "name": "Gemini 2.5 Pro",
-      "provider": "google"
-    },
-    {
-      "slug": "gemini-2.5-flash-preview-05-20",
-      "name": "Gemini 2.5 Flash",
-      "provider": "google"
+      "header_key": "X-Gemini-Api-Key",
+      "models": [
+        {
+          "slug": "gemini-2.5-pro",
+          "name": "Gemini 2.5 Pro",
+          "provider": "google"
+        },
+        {
+          "slug": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash",
+          "provider": "google"
+        }
+      ]
     }
   ]
 }
 ```
 
-| Field               | Type   | Description                              |
-| ------------------- | ------ | ---------------------------------------- |
-| `models`            | array  | List of available models                 |
-| `models[].slug`     | string | Model identifier to use in chat requests |
-| `models[].name`     | string | Human-readable model name                |
-| `models[].provider` | string | Provider name (google, openai)           |
+| Field                          | Type   | Description                              |
+| ------------------------------ | ------ | ---------------------------------------- |
+| `providers`                    | array  | List of providers with their models      |
+| `providers[].header_key`       | string | HTTP header to send API key              |
+| `providers[].models`           | array  | Available models for this provider       |
+| `providers[].models[].slug`    | string | Model identifier to use in chat requests |
+| `providers[].models[].name`    | string | Human-readable model name                |
+| `providers[].models[].provider`| string | Provider name (google, openai)           |
 
 ---
 
@@ -60,6 +76,7 @@ Chat with the database agent to generate SQL queries.
 
 ```
 Content-Type: application/json
+X-Gemini-Api-Key: your-api-key-here
 ```
 
 **Body (new conversation):**
@@ -77,7 +94,7 @@ Content-Type: application/json
 {
   "message": "Show me all users with their orders",
   "connection_string": "postgres://user:pass@localhost:5432/mydb",
-  "model": "gemini-2.5-flash-preview-05-20"
+  "model": "gemini-2.5-flash"
 }
 ```
 
@@ -91,23 +108,12 @@ Content-Type: application/json
 }
 ```
 
-**Body (switch model mid-conversation):**
-
-```json
-{
-  "message": "Now filter by active users only",
-  "connection_string": "postgres://user:pass@localhost:5432/mydb",
-  "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "model": "gemini-2.0-flash"
-}
-```
-
-| Field               | Type   | Required | Description                                                           |
-| ------------------- | ------ | -------- | --------------------------------------------------------------------- |
-| `message`           | string | Yes      | Natural language query                                                |
-| `connection_string` | string | Yes      | PostgreSQL connection URL                                             |
-| `session_id`        | string | No       | UUID from previous response to continue conversation                  |
-| `model`             | string | No       | Model slug from /v1/models (defaults to gemini-2.5-pro-preview-06-05) |
+| Field               | Type   | Required | Description                                       |
+| ------------------- | ------ | -------- | ------------------------------------------------- |
+| `message`           | string | Yes      | Natural language query                            |
+| `connection_string` | string | Yes      | PostgreSQL connection URL                         |
+| `session_id`        | string | No       | UUID from previous response to continue session   |
+| `model`             | string | No       | Model slug from /v1/models (defaults to first available) |
 
 #### Response
 
@@ -138,6 +144,15 @@ Content-Type: application/json
 | `queries[].query`       | string  | The SQL query                      |
 | `queries[].description` | string  | Detailed explanation               |
 
+**Error (401 - Missing API Key):**
+
+```json
+{
+  "success": false,
+  "error": "missing required header: X-Gemini-Api-Key"
+}
+```
+
 **Error (400/500):**
 
 ```json
@@ -156,6 +171,7 @@ Request:
 ```bash
 curl -X POST http://localhost:8080/v1/agent/chat \
   -H "Content-Type: application/json" \
+  -H "X-Gemini-Api-Key: your-api-key" \
   -d '{
     "message": "Show me all users",
     "connection_string": "postgres://root:secret@localhost:5432/mydb"
@@ -186,6 +202,7 @@ Request:
 ```bash
 curl -X POST http://localhost:8080/v1/agent/chat \
   -H "Content-Type: application/json" \
+  -H "X-Gemini-Api-Key: your-api-key" \
   -d '{
     "message": "Now only show active users",
     "connection_string": "postgres://root:secret@localhost:5432/mydb",
@@ -251,20 +268,14 @@ postgres://username:password@host:port/database?sslmode=disable
 | `database` | Database name                            |
 | `sslmode`  | SSL mode (disable, require, verify-full) |
 
-**Examples:**
-
-```
-postgres://root:secret@localhost:5432/mydb?sslmode=disable
-postgres://admin:pass123@db.example.com:5432/production?sslmode=require
-```
-
 ## Error Codes
 
-| Status | Meaning                                    |
-| ------ | ------------------------------------------ |
-| 200    | Success                                    |
-| 400    | Bad request (invalid JSON, missing fields) |
-| 500    | Internal server error                      |
+| Status | Meaning                                         |
+| ------ | ----------------------------------------------- |
+| 200    | Success                                         |
+| 400    | Bad request (invalid JSON, missing fields)      |
+| 401    | Unauthorized (missing or invalid API key header)|
+| 500    | Internal server error                           |
 
 ## Rate Limiting
 

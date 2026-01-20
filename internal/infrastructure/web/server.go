@@ -19,7 +19,7 @@ func CORSMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Header("Access-Control-Allow-Origin", "*")
 		ctx.Header("Access-Control-Allow-Credentials", "true")
-		ctx.Header("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-API-Key")
+		ctx.Header("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-Gemini-Api-Key")
 		ctx.Header("Access-Control-Allow-Methods", "POST, HEAD, PATCH, OPTIONS, GET, PUT, DELETE")
 
 		if ctx.Request.Method == "OPTIONS" {
@@ -31,13 +31,14 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
+// TODO: implement cron job to cleanup unused agents from manager cache based on lastUsed
+
 func NewServer(cfg *config.Config) *Server {
 	router := gin.Default()
 
 	router.Use(CORSMiddleware())
 
 	agentService := agentApp.NewService(domainAgent.AgentConfig{
-		Providers:      cfg.Providers,
 		SchemaCacheTTL: cfg.Agent.SchemaCacheTTL,
 	})
 

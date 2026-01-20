@@ -25,18 +25,19 @@ var GoogleModels = []Model{
 var OpenAIModels = []Model{}
 
 type ProviderConfig struct {
-	EnvKey string
-	Models []Model
+	HeaderKey string
+	Models    []Model
 }
 
 var ProviderRegistry = map[Provider]ProviderConfig{
 	ProviderGoogle: {
-		EnvKey: "GOOGLE_API_KEY",
-		Models: GoogleModels,
+		HeaderKey: "X-Gemini-Api-Key",
+		Models:    GoogleModels,
 	},
+	// TODO: add when adk supports openai
 	ProviderOpenAI: {
-		EnvKey: "OPENAI_API_KEY",
-		Models: OpenAIModels,
+		HeaderKey: "X-Openai-Api-Key",
+		Models:    OpenAIModels,
 	},
 }
 
@@ -53,4 +54,33 @@ func GetModelBySlug(slug string) (Model, bool) {
 		}
 	}
 	return Model{}, false
+}
+
+func GetProviderByModel(model Model) (ProviderConfig, bool) {
+	cfg, ok := ProviderRegistry[model.Provider]
+	return cfg, ok
+}
+
+type ProviderModels struct {
+	Provider  Provider `json:"provider"`
+	HeaderKey string   `json:"header_key"`
+	Models    []Model  `json:"models"`
+}
+
+func GetAllProviderModels() []ProviderModels {
+	var result []ProviderModels
+
+	for provider, cfg := range ProviderRegistry {
+		if len(cfg.Models) == 0 {
+			continue
+		}
+
+		result = append(result, ProviderModels{
+			Provider:  provider,
+			HeaderKey: cfg.HeaderKey,
+			Models:    cfg.Models,
+		})
+	}
+
+	return result
 }

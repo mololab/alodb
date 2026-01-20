@@ -4,7 +4,6 @@
 
 - Go 1.21 or later
 - PostgreSQL (for testing)
-- Google API Key (for Gemini)
 
 ## Setup
 
@@ -18,7 +17,7 @@ make tidy
 
 # Configure
 cp app.env.example app.env
-# Edit app.env with GOOGLE_API_KEY and SERVER_PORT
+# Edit app.env with SERVER_PORT
 
 # Run
 make run
@@ -36,14 +35,13 @@ make run
 
 ## Environment Variables
 
-| Variable         | Description                                      | Required | Default      |
-| ---------------- | ------------------------------------------------ | -------- | ------------ |
-| `GOOGLE_API_KEY` | Gemini API key                                   | No*      | -            |
-| `OPENAI_API_KEY` | OpenAI API key                                   | No*      | -            |
-| `SERVER_PORT`    | HTTP server port                                 | Yes      | -            |
-| `SERVER_ENV`     | Environment mode (`development` or `production`) | No       | `production` |
+| Variable           | Description                                      | Required | Default      |
+| ------------------ | ------------------------------------------------ | -------- | ------------ |
+| `SERVER_PORT`      | HTTP server port                                 | Yes      | -            |
+| `SERVER_ENV`       | Environment mode (`development` or `production`) | No       | `production` |
+| `SCHEMA_CACHE_TTL` | Schema cache duration (e.g., `1h`, `30m`)        | No       | `1h`         |
 
-*At least one provider API key is required. Available models are determined by which API keys are configured.
+API keys are provided by clients via request headers, not environment variables.
 
 ## Testing
 
@@ -54,8 +52,13 @@ make test
 # With coverage
 go test -cover ./...
 
-# Test API
+# Test API (requires API key header)
 curl http://localhost:8080/v1/health
+
+curl -X POST http://localhost:8080/v1/agent/chat \
+  -H "Content-Type: application/json" \
+  -H "X-Gemini-Api-Key: your-api-key" \
+  -d '{"message": "Show tables", "connection_string": "postgres://..."}'
 ```
 
 ## Contributing
@@ -64,7 +67,12 @@ curl http://localhost:8080/v1/health
 
 - Follow standard Go conventions
 - Use `gofmt` for formatting
-- Add comments for exported functions
+
+### Adding a New Provider
+
+1. Add provider constant in `internal/domain/agent/models.go`
+2. Add models and header key to `ProviderRegistry`
+3. Implement model creation in `internal/infrastructure/agent/db_agent.go`
 
 ### Adding a New Tool
 
@@ -86,32 +94,25 @@ curl http://localhost:8080/v1/health
 
 The application uses [zerolog](https://github.com/rs/zerolog) for structured logging.
 
-**Development mode** (`SERVER_ENV=development`): Pretty console output with colors
+**Development mode** (`SERVER_ENV=development`): Pretty console output
 
 ```
 12:34:56 INF server starting port=8080
-12:34:57 DBG processing chat request message="Show me users" has_connection=true
-12:34:57 DBG read_schema tool called
-12:34:58 DBG agent event event=1 author=model func_call=true func=read_schema
-12:34:58 INF schema extracted tables=5
-12:34:58 DBG agent completed event_count=3
+12:34:57 DBG processing chat request session_id=abc123 model=gemini-2.5-pro
+12:34:58 INF initializing agent model=gemini-2.5-pro provider=google
 ```
 
 **Production mode** (`SERVER_ENV=production`): JSON structured logging
 
 ```json
-{
-  "level": "info",
-  "port": "8080",
-  "time": 1234567890,
-  "message": "server starting"
-}
+{"level":"info","port":"8080","time":1234567890,"message":"server starting"}
 ```
 
 ### Common Issues
 
-| Issue                    | Cause                     | Solution                 |
-| ------------------------ | ------------------------- | ------------------------ |
-| "No response generated"  | LLM didn't produce text   | Check API key and prompt |
-| "Connection refused"     | Database not running      | Start PostgreSQL         |
-| "No database connection" | Missing connection string | Include in request       |
+| Issue                    | Cause                     | Solution                       |
+| ------------------------ | ------------------------- | ------------------------------ |
+| "missing required header"| API key not in header     | Add `X-Gemini-Api-Key` header  |
+| "No response generated"  | LLM didn't produce text   | Check API key validity         |
+| "Connection refused"     | Database not running      | Start PostgreSQL               |
+| "No database connection" | Missing connection string | Include in request body        |

@@ -2,9 +2,62 @@
 
 AloDB implements several security measures to protect sensitive data.
 
+## API Key Handling
+
+API keys are provided per-request via HTTP headers, not stored on the server.
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     API KEY FLOW                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   Client Request                                                 │
+│   ┌─────────────────────┐                                        │
+│   │ Header: X-Gemini-   │                                        │
+│   │         Api-Key     │──────┐                                 │
+│   └─────────────────────┘      │                                 │
+│                                ▼                                 │
+│                    ┌───────────────────┐                         │
+│                    │     Handler       │                         │
+│                    │  Extracts key     │                         │
+│                    └───────────────────┘                         │
+│                                │                                 │
+│                                ▼                                 │
+│                    ┌───────────────────┐                         │
+│                    │     Manager       │                         │
+│                    │  Hashes key for   │                         │
+│                    │  cache lookup     │                         │
+│                    └───────────────────┘                         │
+│                                │                                 │
+│                                ▼                                 │
+│                    ┌───────────────────┐                         │
+│                    │    DBAgent        │                         │
+│                    │  Uses key for     │                         │
+│                    │  LLM API calls    │                         │
+│                    └───────────────────┘                         │
+│                                                                  │
+│   Raw API key is NEVER:                                          │
+│   - Stored in environment variables (server-side)                │
+│   - Logged                                                       │
+│   - Persisted to disk                                            │
+│   - Used as cache key (only hash is used)                        │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Agent Caching
+
+Agents are cached for performance using `model + SHA256(apiKey)[:8]`:
+
+- Raw API key is never stored in the cache key
+- Different API keys result in different cache entries
+- Cache includes `lastUsed` timestamp for future cleanup
+
 ## Connection String Protection
 
-The most critical security feature is **never exposing database credentials to the LLM**.
+Database credentials are never exposed to the LLM.
 
 ### How It Works
 
@@ -23,7 +76,7 @@ The most critical security feature is **never exposing database credentials to t
 │                    ┌───────────────────┐                         │
 │                    │  context.Context  │  ◄── Server-side only   │
 │                    │  (Go runtime)     │      Never serialized   │
-│                    └───────────────────┘      to LLM             │
+│                    └───────────────────┘                         │
 │                                │                                 │
 │                                │  Tool reads via                 │
 │                                │  ctx.Value(key)                 │
@@ -41,53 +94,15 @@ The most critical security feature is **never exposing database credentials to t
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Implementation
-
-**1. Custom Context Key**
-
-Using a custom type prevents key collisions:
-
-```go
-// types.go
-type contextKey string
-const connectionStringKey contextKey = "db_connection_string"
-```
-
-**2. Storage in Context**
-
-Connection string is stored server-side only:
-
-```go
-// chat.go
-ctx = context.WithValue(ctx, connectionStringKey, req.ConnectionString)
-```
-
-**3. Tool Access**
-
-Tools read credentials at runtime:
-
-```go
-// tools.go
-connStr, ok := toolCtx.Value(connectionStringKey).(string)
-```
-
-**4. LLM Never Sees It**
-
-Only the user message is sent to the LLM:
-
-```go
-content := genai.NewContentFromText(req.Message, genai.RoleUser)
-// ^ Only message, NO connection string
-```
-
 ## What the LLM Sees
 
-| Data              | Visible to LLM?             |
-| ----------------- | --------------------------- |
-| User message      | ✅ Yes                      |
-| Connection string | ❌ No                       |
-| Database schema   | ✅ Yes (via tool result)    |
-| Query results     | ❌ No (not implemented yet) |
+| Data              | Visible to LLM? |
+| ----------------- | --------------- |
+| User message      | ✅ Yes          |
+| API key           | ❌ No           |
+| Connection string | ❌ No           |
+| Database schema   | ✅ Yes (via tool)|
+| Query results     | ❌ No           |
 
 ## Session Security
 
@@ -113,7 +128,7 @@ The handler validates:
 
 - JSON body structure
 - Required fields present
-- Non-empty message
+- Required API key header present
 
 ### SQL Injection Prevention
 
@@ -129,32 +144,33 @@ The agent generates SQL queries but **does not execute them**. The client is res
 
 Always deploy behind HTTPS to encrypt:
 
+- API keys in transit
 - Connection strings in transit
 - API requests and responses
 
 ### 2. Secure Connection Strings
 
-- Use environment variables, not hardcoded strings
-- Rotate database passwords regularly
 - Use read-only database users when possible
+- Rotate database passwords regularly
+- Run database on private network
 
 ### 3. Network Security
 
-- Run database on private network
 - Use firewall rules to restrict access
 - Consider VPN for remote access
+- Deploy behind a reverse proxy
 
-### 4. API Security (Future)
+### 4. Client-Side Key Storage
 
-Planned features:
+Clients should:
 
-- API key authentication
-- Rate limiting
-- Request logging and auditing
+- Store API keys securely (not in source code)
+- Use environment variables or secure vaults
+- Rotate keys periodically
 
 ## Reporting Security Issues
 
-If you discover a security vulnerability, please report it responsibly:
+If you discover a security vulnerability:
 
 1. Do NOT open a public issue
 2. Email security concerns to the maintainers

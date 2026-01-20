@@ -26,7 +26,19 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.agentService.Chat(c.Request.Context(), req.ToDomain())
+	headerKey, err := h.agentService.GetRequiredHeaderKey(req.Model)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse(err.Error()))
+		return
+	}
+
+	apiKey := c.GetHeader(headerKey)
+	if apiKey == "" {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse("missing required header: "+headerKey))
+		return
+	}
+
+	resp, err := h.agentService.Chat(c.Request.Context(), req.ToDomain(apiKey))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse("failed to process message: "+err.Error()))
 		return
@@ -36,6 +48,6 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 }
 
 func (h *AgentHandler) GetModels(c *gin.Context) {
-	models := h.agentService.GetAvailableModels()
-	c.JSON(http.StatusOK, dto.ModelsResponseFromDomain(models))
+	providerModels := h.agentService.GetAllProviderModels()
+	c.JSON(http.StatusOK, dto.ModelsResponseFromDomain(providerModels))
 }

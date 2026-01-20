@@ -17,7 +17,7 @@ type Service struct {
 func NewService(config domainAgent.AgentConfig) *Service {
 	return &Service{
 		config:  config,
-		manager: infraAgent.NewManager(config.Providers, config.SchemaCacheTTL),
+		manager: infraAgent.NewManager(config.SchemaCacheTTL),
 	}
 }
 
@@ -27,7 +27,7 @@ func (s *Service) Chat(ctx context.Context, req domainAgent.ChatRequest) (*domai
 		modelSlug = domainAgent.GetDefaultModelSlug()
 	}
 
-	agent, err := s.manager.GetAgent(ctx, modelSlug)
+	agent, err := s.manager.GetAgent(ctx, modelSlug, req.APIKey)
 	if err != nil {
 		logger.Error().Err(err).Str("model", modelSlug).Msg("failed to get agent")
 		return nil, fmt.Errorf("failed to get agent for model %s: %w", modelSlug, err)
@@ -41,8 +41,26 @@ func (s *Service) Chat(ctx context.Context, req domainAgent.ChatRequest) (*domai
 	return agent.Chat(ctx, req)
 }
 
-func (s *Service) GetAvailableModels() []domainAgent.Model {
-	return s.manager.GetAvailableModels()
+func (s *Service) GetRequiredHeaderKey(modelSlug string) (string, error) {
+	if modelSlug == "" {
+		modelSlug = domainAgent.GetDefaultModelSlug()
+	}
+
+	model, ok := domainAgent.GetModelBySlug(modelSlug)
+	if !ok {
+		return "", fmt.Errorf("unknown model: %s", modelSlug)
+	}
+
+	providerCfg, ok := domainAgent.GetProviderByModel(model)
+	if !ok {
+		return "", fmt.Errorf("provider not configured for model: %s", modelSlug)
+	}
+
+	return providerCfg.HeaderKey, nil
+}
+
+func (s *Service) GetAllProviderModels() []domainAgent.ProviderModels {
+	return domainAgent.GetAllProviderModels()
 }
 
 func (s *Service) Close() error {

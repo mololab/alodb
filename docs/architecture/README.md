@@ -24,10 +24,11 @@ AloDB follows Domain-Driven Design (DDD) with clean separation of concerns.
 
 Pure business objects with no external dependencies.
 
-| Package             | Purpose                      |
-| ------------------- | ---------------------------- |
-| `agent/types.go`    | Chat request/response models |
-| `database/types.go` | Database schema types        |
+| Package             | Purpose                                 |
+| ------------------- | --------------------------------------- |
+| `agent/types.go`    | Chat request/response models            |
+| `agent/models.go`   | Provider registry and model definitions |
+| `database/types.go` | Database schema types                   |
 
 ### Application Layer (`internal/application/`)
 
@@ -45,32 +46,35 @@ External systems and implementations.
 | --------- | ---------------------------------- |
 | `agent/`  | Multi-model ADK agent with manager |
 | `config/` | Configuration (Viper)              |
-| `web/`    | HTTP server, handlers              |
+| `web/`    | HTTP server, handlers, DTOs        |
 
 ## Project Structure
 
 ```
 alodb/
 ├── cmd/
-│   └── main.go                 # Entry point
-├── docs/                       # Documentation
+│   └── main.go
+├── docs/
 ├── internal/
 │   ├── application/
 │   │   └── agent/
 │   │       └── service.go
 │   ├── domain/
 │   │   ├── agent/
-│   │   │   └── types.go
+│   │   │   ├── types.go
+│   │   │   └── models.go
 │   │   └── database/
 │   │       └── types.go
 │   └── infrastructure/
 │       ├── agent/
-│       │   ├── manager.go      # Multi-model agent manager
-│       │   ├── db_agent.go     # Agent constructor
-│       │   ├── chat.go         # Chat handling
-│       │   ├── events.go       # Event utilities
-│       │   ├── tools.go        # Tool creation
+│       │   ├── manager.go       # Agent caching by model+apiKeyHash
+│       │   ├── db_agent.go
+│       │   ├── chat.go
+│       │   ├── events.go
+│       │   ├── tools.go
 │       │   ├── types.go
+│       │   ├── cache/
+│       │   │   └── schema_cache.go
 │       │   ├── response/
 │       │   │   └── parser.go
 │       │   └── tools/
@@ -80,7 +84,8 @@ alodb/
 │       └── web/
 │           ├── server.go
 │           ├── handlers/
-│           │   └── agent_handler.go
+│           │   ├── agent_handler.go
+│           │   └── errors.go
 │           └── dto/
 │               └── agent.go
 ├── prompts/
@@ -95,9 +100,11 @@ See [request-flow.md](./request-flow.md) for detailed flow.
 
 ## Design Decisions
 
-| Decision                  | Rationale                                  |
-| ------------------------- | ------------------------------------------ |
-| DDD Layers                | Test business logic without infrastructure |
-| Context-based credentials | Connection strings never reach LLM         |
-| External prompts          | Modify agent behavior without code changes |
-| Modular agent package     | Each file has single responsibility        |
+| Decision                  | Rationale                                    |
+| ------------------------- | -------------------------------------------- |
+| DDD Layers                | Test business logic without infrastructure   |
+| API keys via headers      | Per-request auth, no server-side key storage |
+| Agent caching by hash     | Performance without storing raw API keys     |
+| Context-based credentials | Connection strings never reach LLM           |
+| External prompts          | Modify agent behavior without code changes   |
+| Modular agent package     | Each file has single responsibility          |

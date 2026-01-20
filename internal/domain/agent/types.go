@@ -7,6 +7,7 @@ type ChatRequest struct {
 	Message          string
 	ConnectionString string
 	Model            string
+	APIKey           string // from header
 }
 
 type Query struct {
@@ -23,5 +24,4 @@ type ChatResponse struct {
 
 type AgentConfig struct {
 	SchemaCacheTTL time.Duration
-	Providers      map[Provider]string // Provider -> API Key
 }
