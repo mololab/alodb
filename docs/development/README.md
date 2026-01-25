@@ -52,13 +52,11 @@ make test
 # With coverage
 go test -cover ./...
 
-# Test API (requires API key header)
+# Test API
 curl http://localhost:8080/v1/health
 
-curl -X POST http://localhost:8080/v1/agent/chat \
-  -H "Content-Type: application/json" \
-  -H "X-Gemini-Api-Key: your-api-key" \
-  -d '{"message": "Show tables", "connection_string": "postgres://..."}'
+# WebSocket connection (use wscat or similar)
+wscat -c 'ws://localhost:8080/v1/agent/stream?api_key=your-gemini-key'
 ```
 
 ## Contributing
@@ -76,8 +74,8 @@ curl -X POST http://localhost:8080/v1/agent/chat \
 
 ### Adding a New Tool
 
-1. Create implementation in `internal/infrastructure/agent/tools/`
-2. Create wrapper in `internal/infrastructure/agent/tools.go`
+1. Create implementation in `internal/infrastructure/agent/` (e.g., new package or file)
+2. Create tool function in `internal/infrastructure/agent/tools.go`
 3. Register in `createTools()` function
 4. Update `prompts/agent_instruction.md`
 
@@ -110,9 +108,9 @@ The application uses [zerolog](https://github.com/rs/zerolog) for structured log
 
 ### Common Issues
 
-| Issue                    | Cause                     | Solution                       |
-| ------------------------ | ------------------------- | ------------------------------ |
-| "missing required header"| API key not in header     | Add `X-Gemini-Api-Key` header  |
-| "No response generated"  | LLM didn't produce text   | Check API key validity         |
-| "Connection refused"     | Database not running      | Start PostgreSQL               |
-| "No database connection" | Missing connection string | Include in request body        |
+| Issue                    | Cause                       | Solution                                    |
+| ------------------------ | --------------------------- | ------------------------------------------- |
+| "API key required"       | API key not provided        | Add `api_key` query param or header         |
+| "No response generated"  | LLM didn't produce text     | Check API key validity                      |
+| "Query timeout"          | Client didn't respond       | Check client query execution implementation |
+| "agent_error"            | Agent initialization failed | Verify model slug and API key               |

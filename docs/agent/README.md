@@ -43,6 +43,12 @@ The agent is an LLM-powered assistant that:
 │                             ▼                                    │
 │                    ┌─────────────────┐                           │
 │                    │  read_schema    │                           │
+│                    └────────┬────────┘                           │
+│                             │                                    │
+│                             ▼                                    │
+│                    ┌─────────────────┐                           │
+│                    │ QueryExecutor   │ ◄─── WebSocket to Client  │
+│                    │ (client-side)   │                           │
 │                    └─────────────────┘                           │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -50,14 +56,16 @@ The agent is an LLM-powered assistant that:
 
 ## Components
 
-| Component        | Package                                   | Purpose                           |
-| ---------------- | ----------------------------------------- | --------------------------------- |
-| **Manager**      | `internal/infrastructure/agent`           | Agent caching and lifecycle       |
-| **Model**        | `google.golang.org/adk/model/gemini`      | Gemini LLM interface              |
-| **LLMAgent**     | `google.golang.org/adk/agent/llmagent`    | Agent with instructions and tools |
-| **Runner**       | `google.golang.org/adk/runner`            | Executes agent, manages sessions  |
-| **Session**      | `google.golang.org/adk/session`           | In-memory session storage         |
-| **FunctionTool** | `google.golang.org/adk/tool/functiontool` | Wraps Go functions as LLM tools   |
+| Component         | Package                                   | Purpose                            |
+| ----------------- | ----------------------------------------- | ---------------------------------- |
+| **Manager**       | `internal/infrastructure/agent`           | Agent caching and lifecycle        |
+| **Model**         | `google.golang.org/adk/model/gemini`      | Gemini LLM interface               |
+| **LLMAgent**      | `google.golang.org/adk/agent/llmagent`    | Agent with instructions and tools  |
+| **Runner**        | `google.golang.org/adk/runner`            | Executes agent, manages sessions   |
+| **Session**       | `google.golang.org/adk/session`           | In-memory session storage          |
+| **FunctionTool**  | `google.golang.org/adk/tool/functiontool` | Wraps Go functions as LLM tools    |
+| **QueryExecutor** | `internal/infrastructure/agent/schema`    | Interface for client-side queries  |
+| **SchemaReader**  | `internal/infrastructure/agent/schema`    | Extracts schema via query executor |
 
 ## Agent Package Structure
 
@@ -65,16 +73,17 @@ The agent is an LLM-powered assistant that:
 internal/infrastructure/agent/
 ├── manager.go           # Agent caching by model+apiKeyHash
 ├── db_agent.go          # Agent constructor
-├── chat.go              # Chat execution
+├── stream_agent.go      # Streaming chat with callbacks
 ├── events.go            # Event processing
 ├── types.go             # Structs and context keys
-├── tools.go             # Tool creation
+├── constants.go         # Application constants
+├── tools.go             # Tool creation and handlers
 ├── cache/
 │   └── schema_cache.go  # Schema caching
 ├── response/
 │   └── parser.go        # JSON response parsing
-└── tools/
-    └── schema_reader.go # Schema reader implementation
+└── schema/
+    └── reader.go        # Client-side schema extraction
 ```
 
 ## Multi-Model Support
@@ -85,11 +94,13 @@ Models are defined in `internal/domain/agent/models.go`:
 var ProviderRegistry = map[Provider]ProviderConfig{
     ProviderGoogle: {
         HeaderKey: "X-Gemini-Api-Key",
-        Models:    GoogleModels,
+        Metadata:  ProviderMetadata{Name: "Google Gemini", ...},
+        Models:    GoogleModels,  // gemini-3-pro-preview, gemini-2.5-flash, etc.
     },
     ProviderOpenAI: {
         HeaderKey: "X-Openai-Api-Key",
-        Models:    OpenAIModels,
+        Metadata:  ProviderMetadata{Name: "OpenAI", ...},
+        Models:    OpenAIModels,  // Coming soon
     },
 }
 ```

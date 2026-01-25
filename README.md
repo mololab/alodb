@@ -15,28 +15,27 @@ make run
 
 ## Usage
 
+AloDB uses WebSocket for real-time streaming with **client-side query execution** - your database credentials never leave your machine.
+
 ```bash
 # Get available models
 curl http://localhost:8080/v1/models
 
-# Chat with agent (requires API key header)
-curl -X POST http://localhost:8080/v1/agent/chat \
-  -H "Content-Type: application/json" \
-  -H "X-Gemini-Api-Key: your-api-key" \
-  -d '{
-    "message": "Show me all users with their orders",
-    "connection_string": "postgres://user:pass@localhost:5432/mydb"
-  }'
+# Connect via WebSocket (use wscat, websocat, or your app)
+wscat -c 'ws://localhost:8080/v1/agent/stream?api_key=your-gemini-key'
+
+# Then send chat messages:
+# {"type": "chat", "payload": {"message": "Show me all users"}}
 ```
+
+See [WebSocket API docs](./docs/api/websocket.md) for the full protocol.
 
 ## Documentation
 
 | Doc | Description |
 |-----|-------------|
-| [API](./docs/api/README.md) | REST endpoints, authentication, examples |
-| [Architecture](./docs/architecture/README.md) | System design, DDD layers, request flow |
+| [API](./docs/api/README.md) | WebSocket API, endpoints, examples |
 | [Agent](./docs/agent/README.md) | LLM agent, tools, prompt engineering |
-| [Security](./docs/security/README.md) | API key handling, connection string protection |
 | [Development](./docs/development/README.md) | Setup, building, contributing |
 
 ## Tech Stack

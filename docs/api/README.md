@@ -72,7 +72,11 @@ curl http://localhost:8080/v1/models
       },
       "models": [
         { "slug": "gemini-3-pro-preview", "name": "Gemini 3 Pro Preview", "provider": "google" },
-        { "slug": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "provider": "google" }
+        { "slug": "gemini-3-flash-preview", "name": "Gemini 3 Flash Preview", "provider": "google" },
+        { "slug": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "provider": "google" },
+        { "slug": "gemini-2.5-flash-preview-09-2025", "name": "Gemini 2.5 Flash Preview", "provider": "google" },
+        { "slug": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash Lite", "provider": "google" },
+        { "slug": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "provider": "google" }
       ]
     }
   ]
