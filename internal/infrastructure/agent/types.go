@@ -11,8 +11,7 @@ import (
 type contextKey string
 
 const (
-	connectionStringKey contextKey = "db_connection_string"
-	schemaCacheTTLKey   contextKey = "schema_cache_ttl"
+	schemaCacheTTLKey contextKey = "schema_cache_ttl"
 )
 
 type DBAgent struct {

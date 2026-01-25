@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	agentName           = "alodb_agent"
 	agentDescription    = "A database assistant that helps users understand their database schema and generate SQL queries."
 	instructionFilePath = "prompts/agent_instruction.md"
 )
@@ -63,7 +62,7 @@ func NewDBAgent(ctx context.Context, params AgentParams) (*DBAgent, error) {
 	}
 
 	dbAgent, err := llmagent.New(llmagent.Config{
-		Name:        agentName,
+		Name:        AppName,
 		Model:       llmModel,
 		Description: agentDescription,
 		Instruction: instruction,
@@ -74,7 +73,7 @@ func NewDBAgent(ctx context.Context, params AgentParams) (*DBAgent, error) {
 	}
 
 	agentRunner, err := runner.New(runner.Config{
-		AppName:        agentName,
+		AppName:        AppName,
 		Agent:          dbAgent,
 		SessionService: params.SessionService,
 	})
@@ -129,4 +128,26 @@ func (a *DBAgent) Close() error {
 
 func (a *DBAgent) ModelSlug() string {
 	return a.modelSlug
+}
+
+func (a *DBAgent) ensureSession(ctx context.Context, sessionID string) error {
+	_, err := a.sessionService.Get(ctx, &session.GetRequest{
+		AppName:   AppName,
+		UserID:    sessionID,
+		SessionID: sessionID,
+	})
+	if err == nil {
+		return nil // session exists
+	}
+
+	_, err = a.sessionService.Create(ctx, &session.CreateRequest{
+		AppName:   AppName,
+		UserID:    sessionID,
+		SessionID: sessionID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create session: %w", err)
+	}
+
+	return nil
 }

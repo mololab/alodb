@@ -96,7 +96,11 @@ alodb/
 
 ## Request Flow
 
-See [request-flow.md](./request-flow.md) for detailed flow.
+See [request-flow.md](./request-flow.md) for HTTP request flow.
+
+## Streaming Architecture
+
+See [streaming.md](./streaming.md) for WebSocket streaming with client-side query execution.
 
 ## Design Decisions
 

@@ -5,6 +5,8 @@ import (
 	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	"github.com/mololab/alodb/internal/infrastructure/config"
 	"github.com/mololab/alodb/internal/infrastructure/web/handlers"
+	infraWS "github.com/mololab/alodb/internal/infrastructure/websocket"
+	"github.com/mololab/alodb/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +15,7 @@ type Server struct {
 	router       *gin.Engine
 	config       *config.Config
 	agentService *agentApp.Service
+	wsHub        *infraWS.Hub
 }
 
 func CORSMiddleware() gin.HandlerFunc {
@@ -35,24 +38,28 @@ func CORSMiddleware() gin.HandlerFunc {
 
 func NewServer(cfg *config.Config) *Server {
 	router := gin.Default()
-
 	router.Use(CORSMiddleware())
 
 	agentService := agentApp.NewService(domainAgent.AgentConfig{
 		SchemaCacheTTL: cfg.Agent.SchemaCacheTTL,
 	})
 
-	setupRoutes(router, agentService)
+	wsHub := infraWS.NewHub()
+	go wsHub.Run()
+
+	setupRoutes(router, agentService, wsHub)
 
 	return &Server{
 		router:       router,
 		config:       cfg,
 		agentService: agentService,
+		wsHub:        wsHub,
 	}
 }
 
-func setupRoutes(router *gin.Engine, agentService *agentApp.Service) {
+func setupRoutes(router *gin.Engine, agentService *agentApp.Service, wsHub *infraWS.Hub) {
 	agentHandler := handlers.NewAgentHandler(agentService)
+	wsHandler := infraWS.NewHandler(wsHub, agentService.GetManager())
 
 	v1 := router.Group("/v1")
 	{
@@ -62,11 +69,14 @@ func setupRoutes(router *gin.Engine, agentService *agentApp.Service) {
 
 		v1.GET("/models", agentHandler.GetModels)
 
-		agent := v1.Group("/agent")
-		{
-			agent.POST("/chat", agentHandler.Chat)
-		}
+		v1.GET("/agent/stream", func(c *gin.Context) {
+			wsHandler.ServeWS(c.Writer, c.Request)
+		})
+
+		v1.DELETE("/sessions/:session_id", agentHandler.DeleteSession)
 	}
+
+	logger.Info().Msg("routes configured")
 }
 
 func (s *Server) Start() error {

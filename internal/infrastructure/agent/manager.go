@@ -96,6 +96,21 @@ func (m *Manager) createAgent(ctx context.Context, modelSlug, apiKey, cacheKey s
 	return agent, nil
 }
 
+func (m *Manager) DeleteSession(ctx context.Context, sessionID string) error {
+	err := m.sessionService.Delete(ctx, &session.DeleteRequest{
+		AppName:   AppName,
+		UserID:    sessionID,
+		SessionID: sessionID,
+	})
+	if err != nil {
+		logger.Warn().Err(err).Str("session_id", sessionID).Msg("failed to delete session")
+		return err
+	}
+
+	logger.Info().Str("session_id", sessionID).Msg("session deleted")
+	return nil
+}
+
 func (m *Manager) Close() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

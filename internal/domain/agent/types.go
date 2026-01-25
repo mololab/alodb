@@ -2,20 +2,13 @@ package agent
 
 import "time"
 
-type ChatRequest struct {
-	SessionID        string
-	Message          string
-	ConnectionString string
-	Model            string
-	APIKey           string // from header
-}
-
 type Query struct {
 	Title       string `json:"title"`
 	Query       string `json:"query"`
 	Description string `json:"description"`
 }
 
+// parsed response from agent
 type ChatResponse struct {
 	SessionID string  `json:"session_id"`
 	Message   string  `json:"message"`

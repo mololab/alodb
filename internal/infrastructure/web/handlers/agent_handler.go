@@ -14,40 +14,26 @@ type AgentHandler struct {
 }
 
 func NewAgentHandler(agentService *agentApp.Service) *AgentHandler {
-	return &AgentHandler{
-		agentService: agentService,
-	}
-}
-
-func (h *AgentHandler) Chat(c *gin.Context) {
-	var req dto.ChatRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse("invalid request: "+err.Error()))
-		return
-	}
-
-	headerKey, err := h.agentService.GetRequiredHeaderKey(req.Model)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse(err.Error()))
-		return
-	}
-
-	apiKey := c.GetHeader(headerKey)
-	if apiKey == "" {
-		c.JSON(http.StatusUnauthorized, dto.ErrorResponse("missing required header: "+headerKey))
-		return
-	}
-
-	resp, err := h.agentService.Chat(c.Request.Context(), req.ToDomain(apiKey))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse("failed to process message: "+err.Error()))
-		return
-	}
-
-	c.JSON(http.StatusOK, dto.ChatResponseFromDomain(resp))
+	return &AgentHandler{agentService: agentService}
 }
 
 func (h *AgentHandler) GetModels(c *gin.Context) {
 	providerModels := h.agentService.GetAllProviderModels()
 	c.JSON(http.StatusOK, dto.ModelsResponseFromDomain(providerModels))
+}
+
+func (h *AgentHandler) DeleteSession(c *gin.Context) {
+	sessionID := c.Param("session_id")
+	if sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "session_id is required"})
+		return
+	}
+
+	err := h.agentService.DeleteSession(c.Request.Context(), sessionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete session"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"deleted": true, "session_id": sessionID})
 }

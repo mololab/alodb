@@ -1,37 +1,65 @@
 # API Documentation
 
-AloDB exposes a REST API for interacting with the database agent.
+AloDB uses a WebSocket-based API where the **client executes all database queries locally**.
 
-## Base URL
+## Architecture
 
 ```
-http://localhost:{SERVER_PORT}/v1
+┌─────────────────────────────────────────────────────────────────────┐
+│                           YOUR MACHINE                               │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐         │
+│  │     UI       │◄───►│   Client     │◄───►│  PostgreSQL  │         │
+│  │              │     │  (executes   │     │  (local or   │         │
+│  │              │     │   queries)   │     │   remote)    │         │
+│  └──────────────┘     └──────┬───────┘     └──────────────┘         │
+│                              │                                       │
+└──────────────────────────────┼───────────────────────────────────────┘
+                               │ WebSocket (only API key goes to server)
+                               │
+┌──────────────────────────────┼───────────────────────────────────────┐
+│                              │                    ALODB SERVER        │
+│                       ┌──────▼───────┐                               │
+│                       │    Agent     │◄──► LLM (Gemini)              │
+│                       │  (sends SQL  │                               │
+│                       │   queries)   │                               │
+│                       └──────────────┘                               │
+│                                                                      │
+│                    ⚠️  NO DATABASE ACCESS HERE                        │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-## Authentication
+## Why Client-Side Execution?
 
-API keys are passed via request headers. Each provider requires its own header:
-
-| Provider | Header Key         |
-| -------- | ------------------ |
-| Google   | `X-Gemini-Api-Key` |
-| OpenAI   | `X-Openai-Api-Key` |
+1. **Security**: Database credentials never leave your machine
+2. **Firewall-friendly**: Works with databases behind firewalls
+3. **Simple client**: Just a query runner - server sends the SQL
+4. **Progress tracking**: Each query has a name for smooth UX
 
 ## Endpoints
 
+### GET /v1/agent/stream (WebSocket)
+
+Main endpoint for all agent interaction. See [WebSocket API](./websocket.md) for full protocol.
+
+### DELETE /v1/sessions/:session_id
+
+Deletes a session to free memory. Call this when a user closes their chat.
+
+```bash
+curl -X DELETE http://localhost:8080/v1/sessions/your-session-id
+```
+
+```json
+{ "deleted": true, "session_id": "your-session-id" }
+```
+
 ### GET /v1/models
 
-Returns all available AI models grouped by provider with required header keys.
-
-#### Request
+Returns available AI models.
 
 ```bash
 curl http://localhost:8080/v1/models
 ```
-
-#### Response
-
-**Success (200):**
 
 ```json
 {
@@ -43,247 +71,54 @@ curl http://localhost:8080/v1/models
         "description": "Google's Gemini family of multimodal AI models"
       },
       "models": [
-        {
-          "slug": "gemini-2.5-pro",
-          "name": "Gemini 2.5 Pro",
-          "provider": "google"
-        },
-        {
-          "slug": "gemini-2.5-flash",
-          "name": "Gemini 2.5 Flash",
-          "provider": "google"
-        }
+        { "slug": "gemini-3-pro-preview", "name": "Gemini 3 Pro Preview", "provider": "google" },
+        { "slug": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "provider": "google" }
       ]
     }
   ]
 }
 ```
 
-| Field                              | Type   | Description                              |
-| ---------------------------------- | ------ | ---------------------------------------- |
-| `providers`                        | array  | List of providers with their models      |
-| `providers[].header_key`           | string | HTTP header to send API key              |
-| `providers[].metadata`             | object | Provider metadata                        |
-| `providers[].metadata.name`        | string | Provider display name                    |
-| `providers[].metadata.description` | string | Provider description                     |
-| `providers[].models`               | array  | Available models for this provider       |
-| `providers[].models[].slug`        | string | Model identifier to use in chat requests |
-| `providers[].models[].name`        | string | Human-readable model name                |
-| `providers[].models[].provider`    | string | Provider name (google, openai)           |
-
----
-
-### POST /v1/agent/chat
-
-Chat with the database agent to generate SQL queries.
-
-#### Request
-
-**Headers:**
-
-```
-Content-Type: application/json
-X-Gemini-Api-Key: your-api-key-here
-```
-
-**Body (new conversation):**
-
-```json
-{
-  "message": "Show me all users with their orders",
-  "connection_string": "postgres://user:pass@localhost:5432/mydb"
-}
-```
-
-**Body (with specific model):**
-
-```json
-{
-  "message": "Show me all users with their orders",
-  "connection_string": "postgres://user:pass@localhost:5432/mydb",
-  "model": "gemini-2.5-flash"
-}
-```
-
-**Body (continue session):**
-
-```json
-{
-  "message": "Now filter by active users only",
-  "connection_string": "postgres://user:pass@localhost:5432/mydb",
-  "session_id": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-| Field               | Type   | Required | Description                                              |
-| ------------------- | ------ | -------- | -------------------------------------------------------- |
-| `message`           | string | Yes      | Natural language query                                   |
-| `connection_string` | string | Yes      | PostgreSQL connection URL                                |
-| `session_id`        | string | No       | UUID from previous response to continue session          |
-| `model`             | string | No       | Model slug from /v1/models (defaults to first available) |
-
-#### Response
-
-**Success (200):**
-
-```json
-{
-  "success": true,
-  "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "message": "",
-  "queries": [
-    {
-      "title": "Get users with their orders",
-      "query": "SELECT u.id, u.name, u.email, o.id AS order_id, o.total FROM users u LEFT JOIN orders o ON u.id = o.user_id ORDER BY u.id",
-      "description": "This query joins the users table with orders using LEFT JOIN to include users without orders."
-    }
-  ]
-}
-```
-
-| Field                   | Type    | Description                        |
-| ----------------------- | ------- | ---------------------------------- |
-| `success`               | boolean | Whether the request succeeded      |
-| `session_id`            | string  | UUID to use for follow-up requests |
-| `message`               | string  | Optional message or explanation    |
-| `queries`               | array   | Array of generated SQL queries     |
-| `queries[].title`       | string  | Short descriptive title            |
-| `queries[].query`       | string  | The SQL query                      |
-| `queries[].description` | string  | Detailed explanation               |
-
-**Error (401 - Missing API Key):**
-
-```json
-{
-  "success": false,
-  "error": "missing required header: X-Gemini-Api-Key"
-}
-```
-
-**Error (400/500):**
-
-```json
-{
-  "success": false,
-  "error": "Error message here"
-}
-```
-
-#### Examples
-
-**Example 1: Simple Query**
-
-Request:
-
-```bash
-curl -X POST http://localhost:8080/v1/agent/chat \
-  -H "Content-Type: application/json" \
-  -H "X-Gemini-Api-Key: your-api-key" \
-  -d '{
-    "message": "Show me all users",
-    "connection_string": "postgres://root:secret@localhost:5432/mydb"
-  }'
-```
-
-Response:
-
-```json
-{
-  "success": true,
-  "session_id": "abc123...",
-  "message": "",
-  "queries": [
-    {
-      "title": "Get all users",
-      "query": "SELECT id, name, email, created_at FROM users ORDER BY created_at DESC",
-      "description": "Retrieves all users ordered by creation date."
-    }
-  ]
-}
-```
-
-**Example 2: Follow-up Query**
-
-Request:
-
-```bash
-curl -X POST http://localhost:8080/v1/agent/chat \
-  -H "Content-Type: application/json" \
-  -H "X-Gemini-Api-Key: your-api-key" \
-  -d '{
-    "message": "Now only show active users",
-    "connection_string": "postgres://root:secret@localhost:5432/mydb",
-    "session_id": "abc123..."
-  }'
-```
-
-Response:
-
-```json
-{
-  "success": true,
-  "session_id": "abc123...",
-  "message": "",
-  "queries": [
-    {
-      "title": "Get active users",
-      "query": "SELECT id, name, email, created_at FROM users WHERE status = 'active' ORDER BY created_at DESC",
-      "description": "Filters the previous query to show only active users."
-    }
-  ]
-}
-```
-
----
-
 ### GET /v1/health
 
 Health check endpoint.
-
-#### Request
 
 ```bash
 curl http://localhost:8080/v1/health
 ```
 
-#### Response
-
-**Success (200):**
-
 ```json
-{
-  "status": "healthy"
-}
+{ "status": "healthy" }
 ```
 
----
+## Quick Start
 
-## Connection String Format
+1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Start AloDB server
+3. Connect via WebSocket with your API key
+4. Send chat messages, execute queries locally when prompted
+5. Receive generated SQL queries
 
-PostgreSQL connection strings follow this format:
+See [WebSocket API](./websocket.md) for the complete protocol, client implementation examples, and full type definitions.
 
-```
-postgres://username:password@host:port/database?sslmode=disable
-```
+## Message Types Quick Reference
 
-| Component  | Description                              |
-| ---------- | ---------------------------------------- |
-| `username` | Database user                            |
-| `password` | Database password                        |
-| `host`     | Database server hostname                 |
-| `port`     | Database server port (default: 5432)     |
-| `database` | Database name                            |
-| `sslmode`  | SSL mode (disable, require, verify-full) |
+### Server → Client Events
 
-## Error Codes
+| Event Type          | Payload Type              | Description                       |
+| ------------------- | ------------------------- | --------------------------------- |
+| `session_created`   | `SessionCreatedPayload`   | Connection established            |
+| `thinking`          | `ThinkingPayload`         | Agent processing status           |
+| `query_request`     | `QueryRequestPayload`     | SQL query for client to execute   |
+| `text_delta`        | `TextDeltaPayload`        | Streaming text from LLM           |
+| `response_complete` | `ResponseCompletePayload` | Final response with generated SQL |
+| `error`             | `ErrorPayload`            | Error occurred                    |
 
-| Status | Meaning                                          |
-| ------ | ------------------------------------------------ |
-| 200    | Success                                          |
-| 400    | Bad request (invalid JSON, missing fields)       |
-| 401    | Unauthorized (missing or invalid API key header) |
-| 500    | Internal server error                            |
+### Client → Server Messages
 
-## Rate Limiting
+| Message Type   | Payload Type         | Description                   |
+| -------------- | -------------------- | ----------------------------- |
+| `chat`         | `ChatPayload`        | Send message to agent         |
+| `query_result` | `QueryResultPayload` | Return query execution result |
 
-Currently no rate limiting is implemented. This is planned for future releases.
+See [WebSocket API - Request & Response Reference](./websocket.md#request--response-reference) for complete TypeScript definitions.

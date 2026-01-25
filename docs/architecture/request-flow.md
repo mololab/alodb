@@ -1,109 +1,109 @@
 # Request Flow
 
-This document describes how a request flows through the AloDB system.
+This document describes how a request flows through the AloDB system via WebSocket.
 
 ## High-Level Flow
 
 ```
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Client  │────▶│  Handler │────▶│  Service │────▶│  Manager │────▶│ DBAgent  │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘     └──────────┘
-     │                │                │                │                │
-     │   HTTP POST    │   Extract      │   Get/Create   │   Run Agent    │
-     │   + API Key    │   API Key      │   Agent        │   with Tools   │
-     │   Header       │   from Header  │                │                │
+┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+│  Client  │◄───►│   Hub    │────►│  Handler │────►│ DBAgent  │
+│ (query   │     │          │     │          │     │          │
+│  runner) │     │          │     │          │     │          │
+└──────────┘     └──────────┘     └──────────┘     └──────────┘
+     │                                                  │
+     │   Executes SQL locally                          │
+     │   Returns rows                                  │
+     │◄────────────────────────────────────────────────┤
+                                              Sends query via WS
 ```
 
 ## Detailed Steps
 
-### 1. Client Request
+### 1. Client Connects
 
-```bash
-curl -X POST http://localhost:8080/v1/agent/chat \
-  -H "Content-Type: application/json" \
-  -H "X-Gemini-Api-Key: your-api-key" \
-  -d '{
-    "message": "Show me all users",
-    "connection_string": "postgres://user:pass@localhost:5432/mydb"
-  }'
+```javascript
+const ws = new WebSocket('ws://localhost:8080/v1/agent/stream?api_key=...');
 ```
 
-### 2. Handler Layer (`web/handlers/agent_handler.go`)
+### 2. Server Creates Session
 
-- Receives HTTP POST request
-- Validates JSON body
-- Gets required header key from service based on model
-- Extracts API key from request header
-- Converts DTO to domain object with API key
-- Passes to service layer
+```json
+← { "type": "session_created", "payload": { "session_id": "..." } }
+```
 
-### 3. Service Layer (`application/agent/service.go`)
+### 3. Client Sends Chat Message
 
-- Receives domain `ChatRequest` with API key
-- Calls `Manager.GetAgent()` with model and API key
-- Calls `DBAgent.Chat()`
-- Returns domain `ChatResponse`
+```json
+→ { "type": "chat", "payload": { "message": "Show me all users" } }
+```
 
-### 4. Manager Layer (`infrastructure/agent/manager.go`)
+### 4. Handler Layer (`websocket/handler.go`)
 
-- Creates cache key from model + hashed API key
-- Returns cached agent if exists, updates `lastUsed`
-- Otherwise creates new agent with provided API key
-- Caches agent for future requests
+- Receives chat message
+- Gets or creates agent from manager
+- Creates query executor wrapper
+- Starts streaming chat
 
-### 5. Agent Execution (`infrastructure/agent/chat.go`)
+### 5. Agent Execution (`agent/stream_agent.go`)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Chat() Method                             │
+│                     StreamChat() Method                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. Get or create session (UUID)                                 │
+│  1. Get or create session                                        │
 │                                                                  │
-│  2. Store connection string in context                           │
-│     └── SECURITY: Never sent to LLM                              │
+│  2. Store query executor in context                              │
 │                                                                  │
-│  3. Run agent to completion                                      │
-│     └── Sends ONLY message to LLM                                │
-│     └── Captures LAST model response                             │
+│  3. Run agent                                                    │
+│     └── Agent calls read_schema tool                             │
+│     └── Tool uses schema.Reader to send queries                  │
+│     └── Each query goes to client via WebSocket                  │
 │                                                                  │
-│  4. Parse response                                               │
-│     └── Extracts JSON from LLM response                          │
+│  4. Stream LLM response back to client                           │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 6. Agent Event Flow
+### 6. Schema Reading Flow
 
-When the agent runs, it produces multiple events:
+When the agent calls `read_schema`, the Schema Reader sends queries one by one:
 
 ```
-Event 1: Model decides to call read_schema
-         └── Type: FunctionCall
-
-Event 2: Tool executes and returns schema
-         └── Type: FunctionResponse
-
-Event 3: Model generates final response
-         └── Type: Text (Role: Model)
+Server                              Client
+   │                                   │
+   │──► query_request ────────────────►│
+   │    "Getting database name"        │
+   │    step 1/6                       │
+   │                                   │ [runs SQL]
+   │◄── query_result ─────────────────◄│
+   │    rows: [{"current_database":...}]
+   │                                   │
+   │──► query_request ────────────────►│
+   │    "Discovering tables"           │
+   │    step 2/6                       │
+   │                                   │ [runs SQL]
+   │◄── query_result ─────────────────◄│
+   │    rows: [{table_name: "users"}...]
+   │                                   │
+   │  ... more queries for each table ...
 ```
-
-We only capture Event 3 (the last model text response).
 
 ### 7. Response to Client
 
 ```json
-{
-  "success": true,
-  "session_id": "550e8400-e29b-41d4-a716-446655440000",
-  "message": "",
-  "queries": [
-    {
-      "title": "Get all users",
-      "query": "SELECT id, name, email FROM users ORDER BY id",
-      "description": "Retrieves all users from the users table."
-    }
-  ]
+← {
+  "type": "response_complete",
+  "payload": {
+    "success": true,
+    "queries": [
+      {
+        "title": "Get all users",
+        "query": "SELECT id, name, email FROM users ORDER BY id",
+        "description": "Retrieves all users from the users table."
+      }
+    ]
+  }
 }
 ```
 
@@ -116,7 +116,7 @@ Request 1 (user A, gemini-2.5-pro):
   └── Cache miss → Create agent → Cache it
 
 Request 2 (user A, gemini-2.5-pro):
-  └── Cache hit → Return existing agent, update lastUsed
+  └── Cache hit → Return existing agent
 
 Request 3 (user B, gemini-2.5-pro, different API key):
   └── Different hash → Cache miss → Create new agent
@@ -124,14 +124,5 @@ Request 3 (user B, gemini-2.5-pro, different API key):
 
 ## Session Continuity
 
-For follow-up requests, include the `session_id`:
-
-```json
-{
-  "message": "Now show only active users",
-  "connection_string": "postgres://...",
-  "session_id": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
+Sessions persist across chat messages within the same WebSocket connection.
 The agent retains conversation history and can reference previous context.
