@@ -29,6 +29,9 @@ type Client struct {
 	hub     *Hub
 	handler MessageHandler
 
+	closed   bool
+	closedMu sync.RWMutex
+
 	// query result channels - keyed by request id
 	queryResults   map[string]chan *ws.QueryResultPayload
 	queryResultsMu sync.RWMutex
@@ -46,12 +49,31 @@ func NewClient(conn *websocket.Conn, hub *Hub, handler MessageHandler) *Client {
 		send:         make(chan []byte, 256),
 		hub:          hub,
 		handler:      handler,
+		closed:       false,
 		queryResults: make(map[string]chan *ws.QueryResultPayload),
+	}
+}
+
+// Close marks the client as closed and closes the send channel
+func (c *Client) Close() {
+	c.closedMu.Lock()
+	defer c.closedMu.Unlock()
+	if !c.closed {
+		c.closed = true
+		close(c.send)
 	}
 }
 
 // SendEvent sends a typed event to the client
 func (c *Client) SendEvent(eventType ws.ServerEventType, payload any) {
+	// check if client is closed before attempting to send
+	c.closedMu.RLock()
+	if c.closed {
+		c.closedMu.RUnlock()
+		return
+	}
+	c.closedMu.RUnlock()
+
 	event := ws.ServerEvent{
 		Type:      eventType,
 		SessionID: c.SessionID,
@@ -64,6 +86,13 @@ func (c *Client) SendEvent(eventType ws.ServerEventType, payload any) {
 		logger.Error().Err(err).Msg("failed to marshal event")
 		return
 	}
+
+	// additional safety net in case of race condition
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Debug().Str("client_id", c.ID).Msg("send attempted on closed client")
+		}
+	}()
 
 	select {
 	case c.send <- data:

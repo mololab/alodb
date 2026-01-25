@@ -37,7 +37,7 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			if _, exists := h.clients[client.ID]; exists {
 				delete(h.clients, client.ID)
-				close(client.send)
+				client.Close()
 				logger.Debug().
 					Str("client_id", client.ID).
 					Msg("client unregistered")
