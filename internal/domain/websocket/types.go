@@ -60,6 +60,7 @@ type ResponseCompletePayload struct {
 	Success bool           `json:"success"`
 	Message string         `json:"message,omitempty"`
 	Queries []GeneratedSQL `json:"queries,omitempty"`
+	Diagram string         `json:"diagram,omitempty"`
 }
 
 type GeneratedSQL struct {

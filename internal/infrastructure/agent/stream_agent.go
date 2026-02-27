@@ -48,9 +48,11 @@ func (a *DBAgent) StreamChat(
 		return
 	}
 
-	// store query executor in context for tool use
+	// store query executor and schema holder in context for tool use
 	ctx = context.WithValue(ctx, queryExecutorKey, executor)
 	ctx = context.WithValue(ctx, schemaCacheTTLKey, a.schemaCacheTTL)
+	holder := &SchemaHolder{}
+	ctx = context.WithValue(ctx, schemaHolderKey, holder)
 
 	content := genai.NewContentFromText(message, genai.RoleUser)
 	events := a.runner.Run(ctx, actualSessionID, actualSessionID, content, agent.RunConfig{})
@@ -111,6 +113,15 @@ func (a *DBAgent) StreamChat(
 		return
 	}
 
+	if len(resp.UsedTables) > 0 && holder.Schema != nil {
+		diagram := schema.GenerateMermaid(holder.Schema, resp.UsedTables)
+		resp.Diagram = diagram
+		logger.Debug().
+			Int("used_tables", len(resp.UsedTables)).
+			Bool("has_diagram", diagram != "").
+			Msg("diagram generated")
+	}
+
 	if callbacks.OnResponseComplete != nil {
 		callbacks.OnResponseComplete(resp)
 	}
@@ -130,7 +141,10 @@ func (e *ClientQueryExecutor) ExecuteQuery(name, description, query string, step
 	return e.executeQuery(name, description, query, step, totalSteps, timeout)
 }
 
-const queryExecutorKey = "query_executor"
+const (
+	queryExecutorKey = "query_executor"
+	schemaHolderKey  = "schema_holder"
+)
 
 func (a *DBAgent) getOrCreateSession(ctx context.Context, existingID string) (string, error) {
 	if existingID != "" {

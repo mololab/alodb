@@ -127,6 +127,7 @@ func (h *Handler) HandleChat(client *Client, payload *ws.ChatPayload) {
 				Success: true,
 				Message: resp.Message,
 				Queries: queries,
+				Diagram: resp.Diagram,
 			})
 		},
 		OnError: func(err error) {

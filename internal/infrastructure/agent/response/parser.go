@@ -10,8 +10,9 @@ import (
 
 // AgentResponse represents the expected JSON response structure from the LLM
 type AgentResponse struct {
-	Message string  `json:"message"`
-	Queries []Query `json:"queries"`
+	Message    string   `json:"message"`
+	Queries    []Query  `json:"queries"`
+	UsedTables []string `json:"used_tables,omitempty"`
 }
 
 // Query represents a query in the agent response
@@ -44,12 +45,16 @@ func (p *Parser) Parse(sessionID, rawResponse string) (*domainAgent.ChatResponse
 	}
 
 	queries := p.convertQueries(parsed.Queries)
-	logger.Debug().Int("queries", len(queries)).Msg("parsed response")
+	logger.Debug().
+		Int("queries", len(queries)).
+		Int("used_tables", len(parsed.UsedTables)).
+		Msg("parsed response")
 
 	return &domainAgent.ChatResponse{
-		SessionID: sessionID,
-		Message:   parsed.Message,
-		Queries:   queries,
+		SessionID:  sessionID,
+		Message:    parsed.Message,
+		Queries:    queries,
+		UsedTables: parsed.UsedTables,
 	}, nil
 }
 

@@ -39,6 +39,7 @@ func schemaReaderHandler(toolCtx tool.Context, input schemaReaderInput) (schemaR
 	schemaCache := cache.NewSchemaCache(cacheTTL)
 	if cachedSchema := schemaCache.Get(toolCtx); cachedSchema != nil {
 		logger.Debug().Msg("returning cached schema")
+		storeSchemaInHolder(toolCtx, cachedSchema)
 		return schemaReaderOutput{
 			Status:  "success",
 			Schema:  cachedSchema,
@@ -69,11 +70,18 @@ func schemaReaderHandler(toolCtx tool.Context, input schemaReaderInput) (schemaR
 		logger.Warn().Err(err).Msg("failed to cache schema")
 	}
 
+	storeSchemaInHolder(toolCtx, dbSchema)
 	logger.Info().Int("tables", len(dbSchema.Tables)).Msg("schema extracted via client")
 	return schemaReaderOutput{
 		Status: "success",
 		Schema: dbSchema,
 	}, nil
+}
+
+func storeSchemaInHolder(toolCtx tool.Context, schema *database.DatabaseSchema) {
+	if holder, ok := toolCtx.Value(schemaHolderKey).(*SchemaHolder); ok && holder != nil {
+		holder.Schema = schema
+	}
 }
 
 func getCacheTTL(toolCtx tool.Context) time.Duration {
