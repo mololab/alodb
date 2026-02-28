@@ -39,7 +39,8 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
     {
       "title": "Short descriptive title",
       "query": "SELECT ... FROM ... WHERE ...",
-      "description": "What this query does and why"
+      "description": "What this query does and why",
+      "used_tables": ["table1", "table2"]
     }
   ]
 }
@@ -50,6 +51,10 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
   "message": "Explanation of why query cannot be generated",
   "queries": []
 }
+
+## used_tables Field
+
+Every query object MUST include a `used_tables` array listing every table name referenced in that specific query (FROM, JOIN, subqueries). This is used internally to generate a per-query relationship diagram and is never shown to the user.
 
 ## SQL Best Practices
 
@@ -73,7 +78,8 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
     {
       "title": "Get all users",
       "query": "SELECT id, name, email, created_at FROM users ORDER BY created_at DESC",
-      "description": "Retrieves all users ordered by creation date, newest first."
+      "description": "Retrieves all users ordered by creation date, newest first.",
+      "used_tables": ["users"]
     }
   ]
 }
@@ -90,7 +96,8 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
     {
       "title": "Orders with customer information",
       "query": "SELECT o.id, o.order_date, o.total, c.name AS customer_name FROM orders AS o JOIN customers AS c ON o.customer_id = c.id ORDER BY o.order_date DESC",
-      "description": "Joins orders with customers to show order details with customer names."
+      "description": "Joins orders with customers to show order details with customer names.",
+      "used_tables": ["orders", "customers"]
     }
   ]
 }

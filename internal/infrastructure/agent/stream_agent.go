@@ -6,6 +6,7 @@ import (
 	"time"
 
 	domainAgent "github.com/mololab/alodb/internal/domain/agent"
+	"github.com/mololab/alodb/internal/domain/database"
 	ws "github.com/mololab/alodb/internal/domain/websocket"
 	"github.com/mololab/alodb/internal/infrastructure/agent/response"
 	"github.com/mololab/alodb/internal/infrastructure/agent/schema"
@@ -48,9 +49,11 @@ func (a *DBAgent) StreamChat(
 		return
 	}
 
-	// store query executor in context for tool use
+	// store query executor and schema holder in context for tool use
 	ctx = context.WithValue(ctx, queryExecutorKey, executor)
 	ctx = context.WithValue(ctx, schemaCacheTTLKey, a.schemaCacheTTL)
+	holder := &SchemaHolder{}
+	ctx = context.WithValue(ctx, schemaHolderKey, holder)
 
 	content := genai.NewContentFromText(message, genai.RoleUser)
 	events := a.runner.Run(ctx, actualSessionID, actualSessionID, content, agent.RunConfig{})
@@ -111,6 +114,24 @@ func (a *DBAgent) StreamChat(
 		return
 	}
 
+	dbSchema := holder.Schema
+	if dbSchema == nil {
+		if cached, ok := a.schemaStore.Load(actualSessionID); ok {
+			dbSchema = cached.(*database.DatabaseSchema)
+			logger.Debug().Msg("using schema from session store for diagram")
+		}
+	} else {
+		a.schemaStore.Store(actualSessionID, dbSchema)
+	}
+
+	if dbSchema != nil {
+		for i := range resp.Queries {
+			if len(resp.Queries[i].UsedTables) > 0 {
+				resp.Queries[i].Diagram = schema.GenerateMermaid(dbSchema, resp.Queries[i].UsedTables)
+			}
+		}
+	}
+
 	if callbacks.OnResponseComplete != nil {
 		callbacks.OnResponseComplete(resp)
 	}
@@ -130,7 +151,10 @@ func (e *ClientQueryExecutor) ExecuteQuery(name, description, query string, step
 	return e.executeQuery(name, description, query, step, totalSteps, timeout)
 }
 
-const queryExecutorKey = "query_executor"
+const (
+	queryExecutorKey = "query_executor"
+	schemaHolderKey  = "schema_holder"
+)
 
 func (a *DBAgent) getOrCreateSession(ctx context.Context, existingID string) (string, error) {
 	if existingID != "" {

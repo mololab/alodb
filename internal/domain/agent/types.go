@@ -3,9 +3,11 @@ package agent
 import "time"
 
 type Query struct {
-	Title       string `json:"title"`
-	Query       string `json:"query"`
-	Description string `json:"description"`
+	Title       string   `json:"title"`
+	Query       string   `json:"query"`
+	Description string   `json:"description"`
+	Diagram     string   `json:"diagram,omitempty"`
+	UsedTables  []string `json:"-"`
 }
 
 // parsed response from agent
