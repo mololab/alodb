@@ -168,7 +168,10 @@ object SchemaQueryTranslator {
             "public", "BASE", "TABLE", "YES", "NO",
             "FOREIGN", "KEY", "PRIMARY",
         )
-        return allMatches.lastOrNull { it !in excluded } ?: "unknown"
+        return allMatches.lastOrNull { it !in excluded } ?: run {
+            android.util.Log.w("SchemaQueryTranslator", "Could not extract table name from query: ${query.take(120)}")
+            "unknown"
+        }
     }
 
     private fun mapSqliteType(sqliteType: String): String {

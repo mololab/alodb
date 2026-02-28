@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.alodb.sdk.AloDBClient
@@ -12,6 +13,9 @@ import com.alodb.sdk.database.RoomDriver
 import com.alodb.sdk.model.GeneratedSQL
 import com.alodb.sdk.session.ClearResult
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
@@ -112,20 +116,26 @@ class MainActivity : AppCompatActivity() {
     private fun autoExecuteQueries(queries: List<GeneratedSQL>) {
         if (queries.isEmpty()) return
 
-        for (query in queries) {
-            try {
-                val rows = client.database.execute(query.query)
-                val title = "${query.title} (${rows.size} satır)"
-                addMessage(
-                    ChatMessage(
-                        type = ChatMessage.Type.BOT_QUERY_RESULT,
-                        text = query.description,
-                        queryResults = rows,
-                        queryTitle = title,
-                    )
-                )
-            } catch (e: Exception) {
-                addErrorMessage("Sorgu çalıştırılamadı: ${e.message}")
+        lifecycleScope.launch(Dispatchers.IO) {
+            for (query in queries) {
+                try {
+                    val rows = client.database.execute(query.query)
+                    val title = "${query.title} (${rows.size} satır)"
+                    withContext(Dispatchers.Main) {
+                        addMessage(
+                            ChatMessage(
+                                type = ChatMessage.Type.BOT_QUERY_RESULT,
+                                text = query.description,
+                                queryResults = rows,
+                                queryTitle = title,
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        addErrorMessage("Sorgu çalıştırılamadı: ${e.message}")
+                    }
+                }
             }
         }
     }
@@ -140,7 +150,7 @@ class MainActivity : AppCompatActivity() {
                 messages.add(ChatMessage(ChatMessage.Type.BOT_TEXT, streamingBuffer.toString()))
                 adapter.notifyItemInserted(streamingMessageIndex)
             } else {
-                messages[streamingMessageIndex].text = streamingBuffer.toString()
+                messages[streamingMessageIndex] = messages[streamingMessageIndex].copy(text = streamingBuffer.toString())
                 adapter.notifyItemChanged(streamingMessageIndex)
             }
             scrollToBottom()

@@ -1,12 +1,12 @@
 package com.alodb.sample
 
-import android.graphics.Color
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 
@@ -31,14 +31,15 @@ class ChatAdapter(
         val lp = holder.cardBubble.layoutParams as FrameLayout.LayoutParams
         val isUser = msg.type == ChatMessage.Type.USER
 
+        val ctx = holder.itemView.context
         if (isUser) {
             lp.gravity = Gravity.END
-            holder.cardBubble.setCardBackgroundColor(Color.parseColor("#1976D2"))
-            holder.tvMessage.setTextColor(Color.WHITE)
+            holder.cardBubble.setCardBackgroundColor(ContextCompat.getColor(ctx, R.color.bubble_user))
+            holder.tvMessage.setTextColor(ContextCompat.getColor(ctx, R.color.text_user))
         } else {
             lp.gravity = Gravity.START
-            holder.cardBubble.setCardBackgroundColor(Color.parseColor("#F5F5F5"))
-            holder.tvMessage.setTextColor(Color.parseColor("#212121"))
+            holder.cardBubble.setCardBackgroundColor(ContextCompat.getColor(ctx, R.color.bubble_bot))
+            holder.tvMessage.setTextColor(ContextCompat.getColor(ctx, R.color.text_bot))
         }
         holder.cardBubble.layoutParams = lp
 
@@ -46,7 +47,7 @@ class ChatAdapter(
             ChatMessage.Type.BOT_QUERY_RESULT -> {
                 holder.tvQueryTitle.visibility = View.VISIBLE
                 holder.tvQueryTitle.text = msg.queryTitle ?: "Sorgu Sonucu"
-                holder.tvQueryTitle.setTextColor(Color.parseColor("#1976D2"))
+                holder.tvQueryTitle.setTextColor(ContextCompat.getColor(ctx, R.color.text_query_title))
                 holder.tvMessage.text = formatQueryResults(msg.queryResults)
                 holder.tvMessage.textSize = 13f
             }
@@ -60,7 +61,7 @@ class ChatAdapter(
             ChatMessage.Type.BOT_ERROR -> {
                 holder.tvQueryTitle.visibility = View.GONE
                 holder.tvMessage.text = msg.text
-                holder.tvMessage.setTextColor(Color.parseColor("#D32F2F"))
+                holder.tvMessage.setTextColor(ContextCompat.getColor(ctx, R.color.text_error))
                 holder.tvMessage.textSize = 14f
             }
 

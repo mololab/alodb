@@ -71,6 +71,7 @@ internal class WebSocketManager(
         scope.cancel()
         webSocket?.close(1000, "Client disconnect")
         webSocket = null
+        client.dispatcher.executorService.shutdown()
     }
 
     private suspend fun handleMessage(text: String) {
@@ -114,7 +115,7 @@ internal class WebSocketManager(
         }
     }
 
-    private fun handleQueryRequest(payload: QueryRequestPayload) {
+    private suspend fun handleQueryRequest(payload: QueryRequestPayload) {
         when (val filterResult = QuerySafetyFilter.check(payload.query)) {
             is FilterResult.Allowed -> executeAndSend(payload)
             is FilterResult.Blocked -> {
@@ -124,10 +125,10 @@ internal class WebSocketManager(
         }
     }
 
-    private fun executeAndSend(payload: QueryRequestPayload) {
+    private suspend fun executeAndSend(payload: QueryRequestPayload) {
         try {
             val translated = SchemaQueryTranslator.translate(payload.query, driver)
-            val rawRows = driver.execute(translated.sql)
+            val rawRows = withContext(Dispatchers.IO) { driver.execute(translated.sql) }
             val mappedRows = translated.postProcess?.invoke(rawRows) ?: rawRows
             sendQueryResult(payload.requestId, success = true, rows = mappedRows)
         } catch (e: Exception) {

@@ -58,9 +58,8 @@ class RoomDriver(private val db: SupportSQLiteDatabase) : DatabaseDriver {
     }
 
     override fun clearTable(table: String): Int {
-        val countBefore = tableRowCount(table)
-        db.execSQL("DELETE FROM \"$table\"")
-        return countBefore
+        val stmt = db.compileStatement("DELETE FROM \"$table\"")
+        return stmt.executeUpdateDelete()
     }
 
     override fun tableRowCount(table: String): Int {

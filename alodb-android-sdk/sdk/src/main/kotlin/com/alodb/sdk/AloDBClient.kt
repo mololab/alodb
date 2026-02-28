@@ -3,6 +3,10 @@ package com.alodb.sdk
 import com.alodb.sdk.database.DatabaseDriver
 import com.alodb.sdk.session.SessionDataManager
 import com.alodb.sdk.websocket.WebSocketManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class AloDBClient private constructor(
     private val config: AloDBConfig,
@@ -13,9 +17,11 @@ class AloDBClient private constructor(
     val database: DatabaseDriver get() = driver
 
     private val sessionManager = SessionDataManager(driver)
+    private val clientScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var wsManager: WebSocketManager? = null
 
     fun connect() {
+        wsManager?.disconnect()
         wsManager = WebSocketManager(
             serverUrl = config.serverUrl,
             apiKey = config.apiKey,
@@ -57,13 +63,13 @@ class AloDBClient private constructor(
     fun disconnect() {
         wsManager?.disconnect()
         wsManager = null
-        clearSessionData()
+        clientScope.launch { clearSessionData() }
     }
 
     fun logout() {
         wsManager?.disconnect()
         wsManager = null
-        clearSessionData()
+        clientScope.launch { clearSessionData() }
     }
 
     class Builder {

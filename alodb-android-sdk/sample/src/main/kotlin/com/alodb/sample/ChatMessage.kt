@@ -2,7 +2,7 @@ package com.alodb.sample
 
 data class ChatMessage(
     val type: Type,
-    var text: String,
+    val text: String,
     val queryResults: List<Map<String, Any?>>? = null,
     val queryTitle: String? = null,
 ) {

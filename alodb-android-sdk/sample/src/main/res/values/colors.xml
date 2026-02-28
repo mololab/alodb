@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bubble_user">#1976D2</color>
+    <color name="bubble_bot">#F5F5F5</color>
+    <color name="text_user">#FFFFFF</color>
+    <color name="text_bot">#212121</color>
+    <color name="text_query_title">#1976D2</color>
+    <color name="text_error">#D32F2F</color>
+</resources>
