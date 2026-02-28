@@ -30,16 +30,16 @@ object QuerySafetyFilter {
         RegexOption.IGNORE_CASE,
     )
 
+    /**
+     * Schema-only mode (default): only schema introspection queries pass.
+     */
     fun check(sql: String): FilterResult {
-        // Scan the entire SQL for DML keywords — catches multi-statement and
-        // WITH-clause attacks before splitting on semicolons.
         if (DML_ANYWHERE.containsMatchIn(sql)) {
             return FilterResult.Blocked(
                 "Non-SELECT statement detected: ${sql.take(80)}"
             )
         }
 
-        // Split on semicolons and validate each non-empty statement individually.
         val statements = sql.split(";").map { it.trim() }.filter { it.isNotEmpty() }
         for (stmt in statements) {
             val isAllowed = ALLOWED_KEYWORDS.any { stmt.contains(it, ignoreCase = true) }
@@ -47,6 +47,37 @@ object QuerySafetyFilter {
             if (!isAllowed) {
                 return FilterResult.Blocked(
                     "Statement does not match schema whitelist: ${stmt.take(80)}"
+                )
+            }
+        }
+
+        return if (statements.isEmpty()) {
+            FilterResult.Blocked("Empty query")
+        } else {
+            FilterResult.Allowed
+        }
+    }
+
+    /**
+     * SELECT-only mode (sendQueryResults=true): all SELECT/WITH/PRAGMA queries
+     * pass through so query results can be sent back to the LLM. DML is still
+     * always blocked.
+     */
+    fun checkSelectOnly(sql: String): FilterResult {
+        if (DML_ANYWHERE.containsMatchIn(sql)) {
+            return FilterResult.Blocked(
+                "Non-SELECT statement detected: ${sql.take(80)}"
+            )
+        }
+
+        val statements = sql.split(";").map { it.trim() }.filter { it.isNotEmpty() }
+        for (stmt in statements) {
+            val upper = stmt.trimStart()
+            if (!upper.startsWith("SELECT", ignoreCase = true)
+                && !upper.startsWith("WITH", ignoreCase = true)
+                && !upper.startsWith("PRAGMA", ignoreCase = true)) {
+                return FilterResult.Blocked(
+                    "Only SELECT queries are allowed: ${stmt.take(80)}"
                 )
             }
         }

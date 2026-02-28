@@ -17,6 +17,7 @@ internal class WebSocketManager(
     private val model: String?,
     private val driver: DatabaseDriver,
     private val listener: AloDBListener,
+    private val sendQueryResults: Boolean = false,
 ) {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -116,7 +117,12 @@ internal class WebSocketManager(
     }
 
     private suspend fun handleQueryRequest(payload: QueryRequestPayload) {
-        when (val filterResult = QuerySafetyFilter.check(payload.query)) {
+        val filterResult = if (sendQueryResults) {
+            QuerySafetyFilter.checkSelectOnly(payload.query)
+        } else {
+            QuerySafetyFilter.check(payload.query)
+        }
+        when (filterResult) {
             is FilterResult.Allowed -> executeAndSend(payload)
             is FilterResult.Blocked -> {
                 sendQueryResult(payload.requestId, success = false, error = filterResult.reason)

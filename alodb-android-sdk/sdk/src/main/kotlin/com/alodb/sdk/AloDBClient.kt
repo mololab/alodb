@@ -28,6 +28,7 @@ class AloDBClient private constructor(
             model = config.model,
             driver = driver,
             listener = listener,
+            sendQueryResults = config.sendQueryResults,
         )
         wsManager?.connect()
     }
@@ -76,6 +77,7 @@ class AloDBClient private constructor(
         private var serverUrl: String? = null
         private var apiKey: String? = null
         private var model: String? = null
+        private var sendQueryResults: Boolean = false
         private var driver: DatabaseDriver? = null
         private var listener: AloDBListener? = null
         private val triggers = mutableMapOf<String, String>()
@@ -83,6 +85,7 @@ class AloDBClient private constructor(
         fun serverUrl(url: String) = apply { this.serverUrl = url }
         fun apiKey(key: String) = apply { this.apiKey = key }
         fun model(model: String) = apply { this.model = model }
+        fun sendQueryResults(enabled: Boolean) = apply { this.sendQueryResults = enabled }
         fun database(driver: DatabaseDriver) = apply { this.driver = driver }
         fun listener(listener: AloDBListener) = apply { this.listener = listener }
 
@@ -96,6 +99,7 @@ class AloDBClient private constructor(
                     serverUrl = requireNotNull(serverUrl) { "serverUrl is required" },
                     apiKey = requireNotNull(apiKey) { "apiKey is required" },
                     model = model,
+                    sendQueryResults = sendQueryResults,
                 ),
                 driver = requireNotNull(driver) { "database driver is required" },
                 listener = requireNotNull(listener) { "listener is required" },
