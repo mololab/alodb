@@ -6,6 +6,7 @@ import (
 	"time"
 
 	domainAgent "github.com/mololab/alodb/internal/domain/agent"
+	"github.com/mololab/alodb/internal/domain/database"
 	ws "github.com/mololab/alodb/internal/domain/websocket"
 	"github.com/mololab/alodb/internal/infrastructure/agent/response"
 	"github.com/mololab/alodb/internal/infrastructure/agent/schema"
@@ -113,13 +114,22 @@ func (a *DBAgent) StreamChat(
 		return
 	}
 
-	if len(resp.UsedTables) > 0 && holder.Schema != nil {
-		diagram := schema.GenerateMermaid(holder.Schema, resp.UsedTables)
-		resp.Diagram = diagram
-		logger.Debug().
-			Int("used_tables", len(resp.UsedTables)).
-			Bool("has_diagram", diagram != "").
-			Msg("diagram generated")
+	dbSchema := holder.Schema
+	if dbSchema == nil {
+		if cached, ok := a.schemaStore.Load(actualSessionID); ok {
+			dbSchema = cached.(*database.DatabaseSchema)
+			logger.Debug().Msg("using schema from session store for diagram")
+		}
+	} else {
+		a.schemaStore.Store(actualSessionID, dbSchema)
+	}
+
+	if dbSchema != nil {
+		for i := range resp.Queries {
+			if len(resp.Queries[i].UsedTables) > 0 {
+				resp.Queries[i].Diagram = schema.GenerateMermaid(dbSchema, resp.Queries[i].UsedTables)
+			}
+		}
 	}
 
 	if callbacks.OnResponseComplete != nil {

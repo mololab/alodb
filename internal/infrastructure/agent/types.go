@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"sync"
 	"time"
 
 	"github.com/mololab/alodb/internal/domain/database"
@@ -26,4 +27,5 @@ type DBAgent struct {
 	sessionService session.Service
 	modelSlug      string
 	schemaCacheTTL time.Duration
+	schemaStore    sync.Map // sessionID -> *database.DatabaseSchema
 }
