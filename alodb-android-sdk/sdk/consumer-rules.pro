@@ -1,0 +1,4 @@
+-keep class com.alodb.sdk.model.** { *; }
+-keep class com.alodb.sdk.AloDBClient { *; }
+-keep class com.alodb.sdk.AloDBConfig { *; }
+-keep class com.alodb.sdk.AloDBListener { *; }
