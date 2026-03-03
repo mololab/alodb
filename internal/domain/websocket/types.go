@@ -66,6 +66,7 @@ type GeneratedSQL struct {
 	Title       string `json:"title"`
 	Query       string `json:"query"`
 	Description string `json:"description"`
+	Diagram     string `json:"diagram,omitempty"`
 }
 
 type ErrorPayload struct {

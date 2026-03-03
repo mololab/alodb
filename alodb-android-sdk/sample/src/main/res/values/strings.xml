@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AloDB Sample</string>
+    <string name="hint_message">Bir soru sorun…</string>
+    <string name="btn_send">Gönder</string>
+    <string name="thinking">Düşünüyor…</string>
+    <string name="connected">Bağlandı</string>
+    <string name="disconnected">Bağlantı kesildi</string>
+    <string name="no_results">Sonuç bulunamadı</string>
+    <string name="query_result_title">%1$s (%2$d satır)</string>
+</resources>
