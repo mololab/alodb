@@ -183,7 +183,8 @@ The server sends SQL queries with human-readable names. Client just executes and
       {
         "title": "Get all users",
         "query": "SELECT id, name, email FROM users ORDER BY id",
-        "description": "Retrieves all users from the database."
+        "description": "Retrieves all users from the database.",
+        "type": "read"
       }
     ]
   }
@@ -507,6 +508,7 @@ interface GeneratedSQL {
   title: string;       // Human-readable query title
   query: string;       // The SQL query
   description: string; // What the query does
+  type: "read" | "create" | "update" | "delete"; // Query operation type
 }
 ```
 
@@ -523,12 +525,14 @@ interface GeneratedSQL {
       {
         "title": "Get all users",
         "query": "SELECT id, name, email FROM users ORDER BY id",
-        "description": "Retrieves all users from the database."
+        "description": "Retrieves all users from the database.",
+        "type": "read"
       },
       {
         "title": "Count active users",
         "query": "SELECT COUNT(*) FROM users WHERE active = true",
-        "description": "Returns the number of active users."
+        "description": "Returns the number of active users.",
+        "type": "read"
       }
     ]
   }
@@ -718,6 +722,7 @@ interface GeneratedSQL {
   title: string;
   query: string;
   description: string;
+  type: "read" | "create" | "update" | "delete";
 }
 
 interface ErrorPayload {

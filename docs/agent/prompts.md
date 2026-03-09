@@ -56,11 +56,14 @@ Step-by-step process:
     {
       "title": "Short descriptive title",
       "query": "SELECT ... FROM ... WHERE ...",
-      "description": "What this query does and why"
+      "description": "What this query does and why",
+      "type": "read"
     }
   ]
 }
 ```
+
+Each query includes a `type` field: `"read"`, `"create"`, `"update"`, or `"delete"`.
 
 ### 5. SQL Best Practices
 
@@ -68,7 +71,7 @@ Step-by-step process:
 - Use explicit JOINs
 - Select specific columns
 - Use foreign keys for joins
-- Default to read-only queries
+- Use the appropriate query type based on user intent
 
 ### 6. Examples
 

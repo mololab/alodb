@@ -100,7 +100,8 @@ Server                              Client
       {
         "title": "Get all users",
         "query": "SELECT id, name, email FROM users ORDER BY id",
-        "description": "Retrieves all users from the users table."
+        "description": "Retrieves all users from the users table.",
+        "type": "read"
       }
     ]
   }

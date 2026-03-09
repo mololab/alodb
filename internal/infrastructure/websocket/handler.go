@@ -121,6 +121,7 @@ func (h *Handler) HandleChat(client *Client, payload *ws.ChatPayload) {
 					Title:       q.Title,
 					Query:       q.Query,
 					Description: q.Description,
+					Type:        string(q.Type),
 				}
 			}
 			client.SendEvent(ws.EventResponseComplete, ws.ResponseCompletePayload{

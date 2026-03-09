@@ -19,6 +19,7 @@ type Query struct {
 	Title       string `json:"title"`
 	Query       string `json:"query"`
 	Description string `json:"description"`
+	Type        string `json:"type"`
 }
 
 // Parser handles parsing of agent responses
@@ -73,10 +74,15 @@ func (p *Parser) convertQueries(parsedQueries []Query) []domainAgent.Query {
 
 	queries := make([]domainAgent.Query, 0, len(parsedQueries))
 	for _, q := range parsedQueries {
+		queryType := domainAgent.QueryType(q.Type)
+		if !domainAgent.IsValidQueryType(queryType) {
+			queryType = domainAgent.QueryTypeRead
+		}
 		queries = append(queries, domainAgent.Query{
 			Title:       q.Title,
 			Query:       q.Query,
 			Description: q.Description,
+			Type:        queryType,
 		})
 	}
 	return queries

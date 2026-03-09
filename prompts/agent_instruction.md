@@ -39,10 +39,17 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
     {
       "title": "Short descriptive title",
       "query": "SELECT ... FROM ... WHERE ...",
-      "description": "What this query does and why"
+      "description": "What this query does and why",
+      "type": "read"
     }
   ]
 }
+
+**Query type** — every query MUST include a `type` field with one of these values:
+- `"read"` — SELECT queries, data retrieval (including WITH/CTE that only reads)
+- `"create"` — INSERT queries, creating new records
+- `"update"` — UPDATE queries, modifying existing records (including UPSERT/ON CONFLICT)
+- `"delete"` — DELETE or TRUNCATE queries, removing records
 
 ### When no query possible:
 
@@ -57,7 +64,7 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
 - Use explicit JOINs
 - Select specific columns, avoid `SELECT *`
 - Use foreign keys for joins
-- Default to SELECT (read-only) queries
+- Use the appropriate query type (SELECT, INSERT, UPDATE, DELETE) based on user intent
 
 ## Examples
 
@@ -73,7 +80,8 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
     {
       "title": "Get all users",
       "query": "SELECT id, name, email, created_at FROM users ORDER BY created_at DESC",
-      "description": "Retrieves all users ordered by creation date, newest first."
+      "description": "Retrieves all users ordered by creation date, newest first.",
+      "type": "read"
     }
   ]
 }
@@ -90,7 +98,8 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
     {
       "title": "Orders with customer information",
       "query": "SELECT o.id, o.order_date, o.total, c.name AS customer_name FROM orders AS o JOIN customers AS c ON o.customer_id = c.id ORDER BY o.order_date DESC",
-      "description": "Joins orders with customers to show order details with customer names."
+      "description": "Joins orders with customers to show order details with customer names.",
+      "type": "read"
     }
   ]
 }
