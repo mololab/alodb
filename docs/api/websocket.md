@@ -512,6 +512,15 @@ interface GeneratedSQL {
 }
 ```
 
+**Query types:**
+
+| Type     | Description                                                        |
+| -------- | ------------------------------------------------------------------ |
+| `read`   | SELECT queries, data retrieval (including WITH/CTE that only read) |
+| `create` | INSERT queries, creating new records                               |
+| `update` | UPDATE queries, modifying existing records (including UPSERT)      |
+| `delete` | DELETE or TRUNCATE queries, removing records                       |
+
 **Example (success):**
 ```json
 {
