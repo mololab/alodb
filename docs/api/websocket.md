@@ -215,19 +215,13 @@ Each `query_request` includes:
 
 ```javascript
 class AloDBClient {
-  constructor(apiKey, connectionString, model = null) {
+  constructor(apiKey, model = null) {
     this.apiKey = apiKey;
-    this.connectionString = connectionString;
     this.model = model;
     this.ws = null;
-    this.db = null; // Your PostgreSQL client
   }
 
-  async connect() {
-    // Connect to your local PostgreSQL
-    this.db = await connectToPostgres(this.connectionString);
-
-    // Connect to AloDB server
+  connect() {
     const params = new URLSearchParams({
       api_key: this.apiKey,
       ...(this.model && { model: this.model })
@@ -259,14 +253,14 @@ class AloDBClient {
 
   async executeQuery(payload) {
     const { request_id, name, query, step, total_steps } = payload;
-    
+
     // Show progress to user
     console.log(`[${step}/${total_steps}] ${name}`);
 
     try {
-      // Execute query locally
-      const result = await this.db.query(query);
-      
+      // Execute query against your local database
+      const result = await db.query(query);
+
       this.send({
         type: 'query_result',
         payload: {
@@ -297,11 +291,8 @@ class AloDBClient {
 }
 
 // Usage
-const client = new AloDBClient(
-  'your-gemini-api-key',
-  'postgres://user:pass@localhost:5432/mydb'
-);
-await client.connect();
+const client = new AloDBClient('your-gemini-api-key');
+client.connect();
 client.chat('Show me all users with their orders');
 ```
 
