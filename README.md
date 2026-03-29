@@ -1,6 +1,6 @@
-# AloDB
+<h1 align="center">AloDB</h1>
 
-**AI-powered database assistant** — talk to your PostgreSQL databases in plain English. Your credentials and data never leave your machine.
+<p align="center"><b>AI-powered database assistant</b> — talk to your PostgreSQL databases in plain English. Your credentials and data never leave your machine.</p>
 
 [Website](https://alodb.com) | [API Docs](./docs/api/README.md) | [Architecture](./docs/architecture/README.md)
 
