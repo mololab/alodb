@@ -1,12 +1,18 @@
 <h1 align="center">AloDB</h1>
 
+<p align="center"><img width="100" height="100" alt="logo" src="https://github.com/user-attachments/assets/4b0b9292-c548-462a-af85-311f33c55d3a" /></p>
+
 <p align="center"><b>AI-powered database assistant</b> — talk to your PostgreSQL databases in plain English. Your credentials and data never leave your machine.</p>
 
 [Website](https://alodb.com) | [API Docs](./docs/api/README.md) | [Architecture](./docs/architecture/README.md)
 
-<!-- IMAGES: App screenshots -->
-<!-- ![AloDB Chat Interface](images/chat-screenshot.png) -->
-<!-- ![AloDB Studio View](images/studio-screenshot.png) -->
+<p align="center">
+<img width="1512" height="1012" alt="Screenshot 2026-03-29 at 21 48 33" src="https://github.com/user-attachments/assets/2a5d62d9-ac01-4021-a8c9-ee94f5cc1fcf" />
+</p>
+
+<p align="center">
+<img width="1512" height="1012" alt="Screenshot 2026-03-29 at 21 49 35" src="https://github.com/user-attachments/assets/cb559a48-0517-4ed8-9789-a84d55cba12b" />
+</p>
 
 ---
 
