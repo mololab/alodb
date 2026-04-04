@@ -74,17 +74,25 @@ Server                              Client
    │                                   │
    │──► query_request ────────────────►│
    │    "Getting database name"        │
-   │    step 1/6                       │
+   │    step 1/7                       │
    │                                   │ [runs SQL]
    │◄── query_result ─────────────────◄│
    │    rows: [{"current_database":...}]
    │                                   │
    │──► query_request ────────────────►│
    │    "Discovering tables"           │
-   │    step 2/6                       │
+   │    step 2/7                       │
    │                                   │ [runs SQL]
    │◄── query_result ─────────────────◄│
    │    rows: [{table_name: "users"}...]
+   │                                   │
+   │──► query_request ────────────────►│
+   │    "Reading enum types"           │
+   │    step 3/7                       │
+   │                                   │ [runs SQL]
+   │◄── query_result ─────────────────◄│
+   │    rows: [{enum_name: "status",   │
+   │     enum_values: ["active",...]}]  │
    │                                   │
    │  ... more queries for each table ...
 ```

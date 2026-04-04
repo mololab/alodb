@@ -26,7 +26,7 @@ func createSchemaReaderTool() (tool.Tool, error) {
 	return functiontool.New(
 		functiontool.Config{
 			Name:        "read_schema",
-			Description: "Reads and returns the complete database schema including all tables, columns, primary keys, foreign keys, and indexes. The database connection is already configured. Just call this tool to get the schema.",
+			Description: "Reads and returns the complete database schema including all tables, columns, primary keys, foreign keys, indexes, and enum types with their allowed values. The database connection is already configured. Just call this tool to get the schema.",
 		},
 		schemaReaderHandler,
 	)

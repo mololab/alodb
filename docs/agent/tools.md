@@ -19,7 +19,10 @@ Reads the complete PostgreSQL database schema via **client-side query execution*
   "status": "success",
   "schema": {
     "database_name": "mydb",
-    "tables": [...]
+    "tables": [...],
+    "enums": [
+      { "name": "order_status", "values": ["pending", "shipped", "delivered"] }
+    ]
   },
   "message": "Schema loaded from cache."
 }
@@ -35,6 +38,7 @@ read_schema called
   └── If not cached:
       └── Send "Getting database name" query → Client executes → Returns result
       └── Send "Discovering tables" query → Client executes → Returns result
+      └── Send "Reading enum types" query → Client executes → Returns result
       └── For each table:
           └── Send "Reading columns for X" → Client executes → Returns result
           └── Send "Finding primary key for X" → Client executes → Returns result
@@ -66,7 +70,8 @@ The tool sends predefined queries to the client for execution. Each query includ
 
 1. `SELECT current_database()` - Get database name
 2. `SELECT table_name FROM information_schema.tables...` - List tables
-3. For each table:
+3. `SELECT typname, array_agg(enumlabel...) FROM pg_type/pg_enum...` - List enum types with values
+4. For each table:
    - Get columns with types, nullability, defaults, comments
    - Get primary key columns
    - Get foreign key relationships

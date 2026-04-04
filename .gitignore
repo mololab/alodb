@@ -1,3 +1,4 @@
 app.env
 prod.env
 CLAUDE.md
+bin/

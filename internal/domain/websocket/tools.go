@@ -13,6 +13,7 @@ type SchemaQuery struct {
 var SchemaQueries = struct {
 	GetDatabaseName SchemaQuery
 	GetTables       SchemaQuery
+	GetEnums        SchemaQuery
 	GetColumns      SchemaQuery
 	GetPrimaryKey   SchemaQuery
 	GetForeignKeys  SchemaQuery
@@ -34,6 +35,21 @@ var SchemaQueries = struct {
 			WHERE table_schema = 'public' 
 			AND table_type = 'BASE TABLE'
 			ORDER BY table_name`,
+		PerTable: false,
+	},
+	GetEnums: SchemaQuery{
+		ID:          "get_enums",
+		Name:        "Reading enum types",
+		Description: "Lists all enum types and their values in the public schema",
+		Query: `SELECT
+				t.typname AS enum_name,
+				array_agg(e.enumlabel ORDER BY e.enumsortorder) AS enum_values
+			FROM pg_type t
+			JOIN pg_enum e ON t.oid = e.enumtypid
+			JOIN pg_namespace n ON t.typnamespace = n.oid
+			WHERE n.nspname = 'public'
+			GROUP BY t.typname
+			ORDER BY t.typname`,
 		PerTable: false,
 	},
 	GetColumns: SchemaQuery{

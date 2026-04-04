@@ -72,6 +72,7 @@ Each query includes a `type` field: `"read"`, `"create"`, `"update"`, or `"delet
 - Select specific columns
 - Use foreign keys for joins
 - Use the appropriate query type based on user intent
+- Use exact enum values from the schema for enum columns
 
 ### 6. Examples
 

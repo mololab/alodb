@@ -18,7 +18,7 @@ You MUST call the `read_schema` tool FIRST before responding. Do NOT output any 
 
 ## Available Tools
 
-1. **read_schema** - Retrieves the complete database schema (tables, columns, keys, indexes). Call this FIRST.
+1. **read_schema** - Retrieves the complete database schema (tables, columns, keys, indexes, enum types). Call this FIRST.
 
 ## Workflow
 
@@ -65,6 +65,7 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
 - Select specific columns, avoid `SELECT *`
 - Use foreign keys for joins
 - Use the appropriate query type (SELECT, INSERT, UPDATE, DELETE) based on user intent
+- When filtering or inserting values for enum columns, use the exact enum values from the schema (e.g., `WHERE status = 'active'` not `WHERE status = 'Active'`). The schema includes all enum types with their allowed values — always reference them for correctness.
 
 ## Examples
 

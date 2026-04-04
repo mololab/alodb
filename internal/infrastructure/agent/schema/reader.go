@@ -41,15 +41,22 @@ func (r *Reader) ReadSchema() (*database.DatabaseSchema, error) {
 		return nil, fmt.Errorf("failed to get tables: %w", err)
 	}
 
+	// Step 3: get enums
+	enums, err := r.getEnums()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get enums: %w", err)
+	}
+	schema.Enums = enums
+
 	if len(tables) == 0 {
 		logger.Info().Msg("no tables found in database")
 		return schema, nil
 	}
 
 	// calculate total steps for progress reporting
-	// 2 base queries + 4 queries per table (columns, pk, fk, indexes)
-	totalSteps := 2 + (len(tables) * 4)
-	currentStep := 2
+	// 3 base queries + 4 queries per table (columns, pk, fk, indexes)
+	totalSteps := 3 + (len(tables) * 4)
+	currentStep := 3
 
 	// Step 3: get schema for each table
 	for _, tableName := range tables {
@@ -67,13 +74,13 @@ func (r *Reader) ReadSchema() (*database.DatabaseSchema, error) {
 func (r *Reader) getDatabaseName() (string, error) {
 	q := ws.SchemaQueries.GetDatabaseName
 
-	result, err := r.executor.ExecuteQuery(q.Name, q.Description, q.Query, 1, 2, queryTimeout)
+	result, err := r.executor.ExecuteQuery(q.Name, q.Description, q.Query, 1, 3, queryTimeout)
 	if err != nil {
 		return "", err
 	}
 
 	if !result.Success {
-		return "", fmt.Errorf(result.Error)
+		return "", fmt.Errorf("%s", result.Error)
 	}
 
 	// extract database name from result rows
@@ -97,13 +104,13 @@ func (r *Reader) getDatabaseName() (string, error) {
 func (r *Reader) getTables() ([]string, error) {
 	q := ws.SchemaQueries.GetTables
 
-	result, err := r.executor.ExecuteQuery(q.Name, q.Description, q.Query, 2, 2, queryTimeout)
+	result, err := r.executor.ExecuteQuery(q.Name, q.Description, q.Query, 2, 3, queryTimeout)
 	if err != nil {
 		return nil, err
 	}
 
 	if !result.Success {
-		return nil, fmt.Errorf(result.Error)
+		return nil, fmt.Errorf("%s", result.Error)
 	}
 
 	var tables []string
@@ -122,6 +129,48 @@ func (r *Reader) getTables() ([]string, error) {
 	}
 
 	return tables, nil
+}
+
+func (r *Reader) getEnums() ([]database.EnumType, error) {
+	q := ws.SchemaQueries.GetEnums
+
+	result, err := r.executor.ExecuteQuery(q.Name, q.Description, q.Query, 3, 3, queryTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	if !result.Success {
+		return nil, fmt.Errorf("%s", result.Error)
+	}
+
+	var enums []database.EnumType
+	for _, row := range result.Rows {
+		if rowMap, ok := row.(map[string]any); ok {
+			e := database.EnumType{}
+			e.Name, _ = rowMap["enum_name"].(string)
+
+			// handle enum values (could be array or string)
+			if vals, ok := rowMap["enum_values"].([]any); ok {
+				for _, v := range vals {
+					if s, ok := v.(string); ok {
+						e.Values = append(e.Values, s)
+					}
+				}
+			} else if valStr, ok := rowMap["enum_values"].(string); ok {
+				// parse postgresql array format: {val1,val2}
+				valStr = strings.Trim(valStr, "{}")
+				if valStr != "" {
+					e.Values = strings.Split(valStr, ",")
+				}
+			}
+
+			if e.Name != "" {
+				enums = append(enums, e)
+			}
+		}
+	}
+
+	return enums, nil
 }
 
 func (r *Reader) getTableSchema(tableName string, currentStep *int, totalSteps int) (*database.TableSchema, error) {
@@ -172,7 +221,7 @@ func (r *Reader) getColumns(tableName string, currentStep *int, totalSteps int) 
 	}
 
 	if !result.Success {
-		return nil, fmt.Errorf(result.Error)
+		return nil, fmt.Errorf("%s", result.Error)
 	}
 
 	var columns []database.ColumnSchema
@@ -210,7 +259,7 @@ func (r *Reader) getPrimaryKey(tableName string, currentStep *int, totalSteps in
 	}
 
 	if !result.Success {
-		return nil, fmt.Errorf(result.Error)
+		return nil, fmt.Errorf("%s", result.Error)
 	}
 
 	var columns []string
@@ -244,7 +293,7 @@ func (r *Reader) getForeignKeys(tableName string, currentStep *int, totalSteps i
 	}
 
 	if !result.Success {
-		return nil, fmt.Errorf(result.Error)
+		return nil, fmt.Errorf("%s", result.Error)
 	}
 
 	fkMap := make(map[string]*database.ForeignKey)
@@ -295,7 +344,7 @@ func (r *Reader) getIndexes(tableName string, currentStep *int, totalSteps int) 
 	}
 
 	if !result.Success {
-		return nil, fmt.Errorf(result.Error)
+		return nil, fmt.Errorf("%s", result.Error)
 	}
 
 	var indexes []database.IndexSchema

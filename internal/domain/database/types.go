@@ -33,10 +33,17 @@ type IndexSchema struct {
 	IsUnique bool     `json:"is_unique"`
 }
 
+// EnumType represents a PostgreSQL enum type with its allowed values
+type EnumType struct {
+	Name   string   `json:"name"`
+	Values []string `json:"values"`
+}
+
 // DatabaseSchema represents the complete database schema
 type DatabaseSchema struct {
 	DatabaseName string        `json:"database_name"`
 	Tables       []TableSchema `json:"tables"`
+	Enums        []EnumType    `json:"enums,omitempty"`
 }
 
 // QueryResult represents the result of a query generation

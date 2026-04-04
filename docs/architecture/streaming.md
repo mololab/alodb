@@ -35,6 +35,7 @@ AloDB uses WebSocket for real-time communication. The **client is a simple query
 │  │  Sends queries like:                                          │          │
 │  │  • "SELECT current_database()"                                │          │
 │  │  • "SELECT table_name FROM information_schema.tables..."      │          │
+│  │  • "SELECT typname, array_agg(enumlabel...) FROM pg_type..."  │          │
 │  │  • "SELECT column_name, data_type FROM... WHERE table='X'"    │          │
 │  └────────────────────────────────────────────────────────────────┘          │
 │                                                                              │
@@ -103,14 +104,15 @@ Client                          Server                           LLM
 
 The server sends these queries to the client (defined in `domain/websocket/tools.go`):
 
-| Query Name                 | Purpose                      |
-| -------------------------- | ---------------------------- |
-| Getting database name      | `SELECT current_database()`  |
-| Discovering tables         | List tables in public schema |
-| Reading columns for X      | Get columns for each table   |
-| Finding primary key for X  | Get PK columns               |
-| Finding foreign keys for X | Get FK relationships         |
-| Reading indexes for X      | Get index definitions        |
+| Query Name                 | Purpose                              |
+| -------------------------- | ------------------------------------ |
+| Getting database name      | `SELECT current_database()`          |
+| Discovering tables         | List tables in public schema         |
+| Reading enum types         | List enum types with allowed values  |
+| Reading columns for X      | Get columns for each table           |
+| Finding primary key for X  | Get PK columns                       |
+| Finding foreign keys for X | Get FK relationships                 |
+| Reading indexes for X      | Get index definitions                |
 
 ## Security Benefits
 
