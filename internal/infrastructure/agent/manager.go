@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	"github.com/mololab/alodb/pkg/logger"
 
 	"google.golang.org/adk/session"
@@ -62,19 +61,12 @@ func (m *Manager) createAgent(ctx context.Context, modelSlug, apiKey, cacheKey s
 		return cached.agent, nil
 	}
 
-	model, ok := domainAgent.GetModelBySlug(modelSlug)
-	if !ok {
-		return nil, fmt.Errorf("unknown model: %s", modelSlug)
-	}
-
 	if apiKey == "" {
-		providerCfg, _ := domainAgent.GetProviderByModel(model)
-		return nil, fmt.Errorf("API key is required, provide via header: %s", providerCfg.HeaderKey)
+		return nil, fmt.Errorf("API key is required")
 	}
 
 	logger.Info().
 		Str("model", modelSlug).
-		Str("provider", string(model.Provider)).
 		Msg("initializing agent")
 
 	agent, err := NewDBAgent(ctx, AgentParams{

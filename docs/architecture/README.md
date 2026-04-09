@@ -27,7 +27,7 @@ Pure business objects with no external dependencies.
 | Package             | Purpose                                 |
 | ------------------- | --------------------------------------- |
 | `agent/types.go`    | Chat request/response models            |
-| `agent/models.go`   | Provider registry and model definitions |
+| `agent/models.go`   | Provider registry and model types       |
 | `database/types.go` | Database schema types                   |
 
 ### Application Layer (`internal/application/`)
@@ -68,6 +68,7 @@ alodb/
 │   └── infrastructure/
 │       ├── agent/
 │       │   ├── manager.go       # Agent caching by model+apiKeyHash
+│       │   ├── model_fetcher.go # Dynamic model discovery from provider APIs
 │       │   ├── db_agent.go
 │       │   ├── chat.go
 │       │   ├── events.go

@@ -73,6 +73,7 @@ The agent is an LLM-powered assistant that:
 internal/infrastructure/agent/
 ├── manager.go           # Agent caching by model+apiKeyHash
 ├── db_agent.go          # Agent constructor
+├── model_fetcher.go     # Dynamic model discovery from provider APIs
 ├── stream_agent.go      # Streaming chat with callbacks
 ├── events.go            # Event processing
 ├── types.go             # Structs and context keys
@@ -88,27 +89,25 @@ internal/infrastructure/agent/
 
 ## Multi-Model Support
 
-Models are defined in `internal/domain/agent/models.go`:
+Available models are **fetched dynamically** from the provider's API at runtime — no hardcoded model lists. Provider metadata (name, header key) is defined in `internal/domain/agent/models.go`, while model discovery is handled by `internal/infrastructure/agent/model_fetcher.go`.
 
 ```go
+// Provider metadata only — models are fetched from Google's API
 var ProviderRegistry = map[Provider]ProviderConfig{
     ProviderGoogle: {
         HeaderKey: "X-Gemini-Api-Key",
         Metadata:  ProviderMetadata{Name: "Google Gemini", ...},
-        Models:    GoogleModels,  // gemini-3-pro-preview, gemini-2.5-flash, etc.
-    },
-    ProviderOpenAI: {
-        HeaderKey: "X-Openai-Api-Key",
-        Metadata:  ProviderMetadata{Name: "OpenAI", ...},
-        Models:    OpenAIModels,  // Coming soon
     },
 }
 ```
 
+The `ModelFetcher` uses the `google.golang.org/genai` SDK's `client.Models.All()` to list all models, filters for those supporting `generateContent`, and caches results for 1 hour.
+
 Adding a new provider requires:
-1. Add provider constant and models
-2. Add to `ProviderRegistry` with header key
-3. Implement model creation in `db_agent.go`
+1. Add provider constant to `ProviderRegistry` with header key
+2. Implement model fetching in `model_fetcher.go` (or a new fetcher)
+3. Add the provider case in `application/agent/service.go` `GetModels()`
+4. Implement model creation in `db_agent.go`
 
 ## Event Handling
 

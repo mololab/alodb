@@ -67,7 +67,8 @@ func setupRoutes(router *gin.Engine, agentService *agentApp.Service, wsHub *infr
 			c.JSON(200, gin.H{"status": "healthy"})
 		})
 
-		v1.GET("/models", agentHandler.GetModels)
+		v1.GET("/providers", agentHandler.GetProviders)
+		v1.GET("/providers/:provider/models", agentHandler.GetProviderModels)
 
 		v1.GET("/agent/stream", func(c *gin.Context) {
 			wsHandler.ServeWS(c.Writer, c.Request)

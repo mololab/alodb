@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	"github.com/mololab/alodb/pkg/logger"
 
 	"google.golang.org/adk/agent/llmagent"
@@ -31,13 +30,8 @@ type AgentParams struct {
 }
 
 func NewDBAgent(ctx context.Context, params AgentParams) (*DBAgent, error) {
-	modelInfo, ok := domainAgent.GetModelBySlug(params.ModelSlug)
-	if !ok {
-		return nil, fmt.Errorf("unknown model: %s", params.ModelSlug)
-	}
-
 	if params.APIKey == "" {
-		return nil, fmt.Errorf("API key is required for provider: %s", modelInfo.Provider)
+		return nil, fmt.Errorf("API key is required")
 	}
 
 	instruction, err := loadInstruction()
@@ -47,11 +41,10 @@ func NewDBAgent(ctx context.Context, params AgentParams) (*DBAgent, error) {
 
 	logger.Debug().
 		Str("model", params.ModelSlug).
-		Str("provider", string(modelInfo.Provider)).
 		Int("instruction_bytes", len(instruction)).
 		Msg("creating agent")
 
-	llmModel, err := createModel(ctx, modelInfo, params.APIKey)
+	llmModel, err := createModel(ctx, params.ModelSlug, params.APIKey)
 	if err != nil {
 		return nil, err
 	}
@@ -90,17 +83,10 @@ func NewDBAgent(ctx context.Context, params AgentParams) (*DBAgent, error) {
 	}, nil
 }
 
-func createModel(ctx context.Context, m domainAgent.Model, apiKey string) (model.LLM, error) {
-	switch m.Provider {
-	case domainAgent.ProviderGoogle:
-		return gemini.NewModel(ctx, m.Slug, &genai.ClientConfig{
-			APIKey: apiKey,
-		})
-	case domainAgent.ProviderOpenAI:
-		return nil, fmt.Errorf("OpenAI provider not yet supported")
-	default:
-		return nil, fmt.Errorf("unsupported provider: %s", m.Provider)
-	}
+func createModel(ctx context.Context, modelSlug string, apiKey string) (model.LLM, error) {
+	return gemini.NewModel(ctx, modelSlug, &genai.ClientConfig{
+		APIKey: apiKey,
+	})
 }
 
 func loadInstruction() (string, error) {

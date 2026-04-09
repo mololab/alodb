@@ -68,9 +68,10 @@ wscat -c 'ws://localhost:8080/v1/agent/stream?api_key=your-gemini-key'
 
 ### Adding a New Provider
 
-1. Add provider constant in `internal/domain/agent/models.go`
-2. Add models and header key to `ProviderRegistry`
-3. Implement model creation in `internal/infrastructure/agent/db_agent.go`
+1. Add provider constant and header key to `ProviderRegistry` in `internal/domain/agent/models.go`
+2. Implement model fetching in `internal/infrastructure/agent/model_fetcher.go` (or a new fetcher)
+3. Add the provider case in `internal/application/agent/service.go` `GetModels()`
+4. Implement model creation in `internal/infrastructure/agent/db_agent.go`
 
 ### Adding a New Tool
 

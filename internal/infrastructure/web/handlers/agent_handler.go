@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	agentApp "github.com/mololab/alodb/internal/application/agent"
+	domainAgent "github.com/mololab/alodb/internal/domain/agent"
 	"github.com/mololab/alodb/internal/infrastructure/web/dto"
 
 	"github.com/gin-gonic/gin"
@@ -17,9 +18,37 @@ func NewAgentHandler(agentService *agentApp.Service) *AgentHandler {
 	return &AgentHandler{agentService: agentService}
 }
 
-func (h *AgentHandler) GetModels(c *gin.Context) {
-	providerModels := h.agentService.GetAllProviderModels()
-	c.JSON(http.StatusOK, dto.ModelsResponseFromDomain(providerModels))
+func (h *AgentHandler) GetProviders(c *gin.Context) {
+	providers := h.agentService.GetProviders()
+	c.JSON(http.StatusOK, dto.ProvidersResponseFromDomain(providers))
+}
+
+func (h *AgentHandler) GetProviderModels(c *gin.Context) {
+	provider := domainAgent.Provider(c.Param("provider"))
+
+	cfg, ok := domainAgent.ProviderRegistry[provider]
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "unknown provider: " + string(provider)})
+		return
+	}
+
+	apiKey := c.Query("api_key")
+	if apiKey == "" {
+		apiKey = c.GetHeader(cfg.HeaderKey)
+	}
+
+	if apiKey == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "API key required via api_key query param or " + cfg.HeaderKey + " header"})
+		return
+	}
+
+	models, err := h.agentService.GetModels(c.Request.Context(), provider, apiKey)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch models: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ModelsResponseFromDomain(models))
 }
 
 func (h *AgentHandler) DeleteSession(c *gin.Context) {

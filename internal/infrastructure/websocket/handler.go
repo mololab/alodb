@@ -40,7 +40,7 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	model := r.URL.Query().Get("model")
 	if model == "" {
-		model = domainAgent.GetDefaultModelSlug()
+		model = domainAgent.DefaultModelSlug
 	}
 
 	if apiKey == "" {

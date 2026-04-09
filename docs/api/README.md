@@ -53,35 +53,50 @@ curl -X DELETE http://localhost:8080/v1/sessions/your-session-id
 { "deleted": true, "session_id": "your-session-id" }
 ```
 
-### GET /v1/models
+### GET /v1/providers
 
-Returns available AI models.
+Returns available AI providers. **No authentication required.** Use this to discover which providers are available and what API key header each one expects.
 
 ```bash
-curl http://localhost:8080/v1/models
+curl http://localhost:8080/v1/providers
 ```
 
 ```json
 {
   "providers": [
     {
+      "provider": "google",
       "header_key": "X-Gemini-Api-Key",
       "metadata": {
         "name": "Google Gemini",
         "description": "Google's Gemini family of multimodal AI models"
-      },
-      "models": [
-        { "slug": "gemini-3-pro-preview", "name": "Gemini 3 Pro Preview", "provider": "google" },
-        { "slug": "gemini-3-flash-preview", "name": "Gemini 3 Flash Preview", "provider": "google" },
-        { "slug": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "provider": "google" },
-        { "slug": "gemini-2.5-flash-preview-09-2025", "name": "Gemini 2.5 Flash Preview", "provider": "google" },
-        { "slug": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash Lite", "provider": "google" },
-        { "slug": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "provider": "google" }
-      ]
+      }
     }
   ]
 }
 ```
+
+### GET /v1/providers/:provider/models
+
+Returns available models for a specific provider. **Requires an API key** — models are fetched dynamically from the provider's API and cached for 1 hour.
+
+Pass the API key via `api_key` query param or the provider's header (e.g. `X-Gemini-Api-Key` for Google).
+
+```bash
+curl -H "X-Gemini-Api-Key: your-key" http://localhost:8080/v1/providers/google/models
+```
+
+```json
+{
+  "models": [
+    { "slug": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "provider": "google" },
+    { "slug": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "provider": "google" },
+    ...
+  ]
+}
+```
+
+Only models that support `generateContent` are returned.
 
 ### GET /v1/health
 
@@ -99,9 +114,11 @@ curl http://localhost:8080/v1/health
 
 1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. Start AloDB server
-3. Connect via WebSocket with your API key
-4. Send chat messages, execute queries locally when prompted
-5. Receive generated SQL queries
+3. Call `GET /v1/providers` to discover available providers
+4. Call `GET /v1/providers/google/models` with your API key to list models
+5. Connect via WebSocket with your API key and chosen model
+6. Send chat messages, execute queries locally when prompted
+7. Receive generated SQL queries
 
 See [WebSocket API](./websocket.md) for the complete protocol, client implementation examples, and full type definitions.
 

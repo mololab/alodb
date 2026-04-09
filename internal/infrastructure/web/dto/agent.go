@@ -13,38 +13,49 @@ type ProviderMetadata struct {
 	Description string `json:"description"`
 }
 
-type ProviderModelsResponse struct {
+type ProviderResponse struct {
+	Provider  string           `json:"provider"`
 	HeaderKey string           `json:"header_key"`
 	Metadata  ProviderMetadata `json:"metadata"`
-	Models    []Model          `json:"models"`
+}
+
+type ProvidersResponse struct {
+	Providers []ProviderResponse `json:"providers"`
+}
+
+func ProvidersResponseFromDomain(providers []domainAgent.ProviderInfo) ProvidersResponse {
+	result := ProvidersResponse{
+		Providers: make([]ProviderResponse, 0, len(providers)),
+	}
+
+	for _, p := range providers {
+		result.Providers = append(result.Providers, ProviderResponse{
+			Provider:  string(p.Provider),
+			HeaderKey: p.HeaderKey,
+			Metadata: ProviderMetadata{
+				Name:        p.Metadata.Name,
+				Description: p.Metadata.Description,
+			},
+		})
+	}
+
+	return result
 }
 
 type ModelsResponse struct {
-	Providers []ProviderModelsResponse `json:"providers"`
+	Models []Model `json:"models"`
 }
 
-func ModelsResponseFromDomain(providerModels []domainAgent.ProviderModels) ModelsResponse {
+func ModelsResponseFromDomain(models []domainAgent.Model) ModelsResponse {
 	result := ModelsResponse{
-		Providers: make([]ProviderModelsResponse, 0, len(providerModels)),
+		Models: make([]Model, 0, len(models)),
 	}
 
-	for _, pm := range providerModels {
-		models := make([]Model, len(pm.Models))
-		for i, m := range pm.Models {
-			models[i] = Model{
-				Slug:     m.Slug,
-				Name:     m.Name,
-				Provider: string(m.Provider),
-			}
-		}
-
-		result.Providers = append(result.Providers, ProviderModelsResponse{
-			HeaderKey: pm.HeaderKey,
-			Metadata: ProviderMetadata{
-				Name:        pm.Metadata.Name,
-				Description: pm.Metadata.Description,
-			},
-			Models: models,
+	for _, m := range models {
+		result.Models = append(result.Models, Model{
+			Slug:     m.Slug,
+			Name:     m.Name,
+			Provider: string(m.Provider),
 		})
 	}
 
