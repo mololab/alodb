@@ -15,3 +15,19 @@ test:
 # Clean build artifacts
 clean:
 	rm -rf bin/
+
+git:
+	git add .
+	git commit -m "logic improvements"
+	git push
+
+g:
+	make git
+
+prod:
+	make g || true
+	git pull
+	git checkout prod
+	git reset --hard main
+	git push origin prod -f
+	git checkout main
