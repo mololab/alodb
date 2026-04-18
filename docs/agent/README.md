@@ -89,10 +89,10 @@ internal/infrastructure/agent/
 
 ## Multi-Model Support
 
-Available models are **fetched dynamically** from the provider's API at runtime — no hardcoded model lists. Provider metadata (name, header key) is defined in `internal/domain/agent/models.go`, while model discovery is handled by `internal/infrastructure/agent/model_fetcher.go`.
+Available models are **fetched dynamically** from the provider's API at runtime - no hardcoded model lists. Provider metadata (name, header key) is defined in `internal/domain/agent/models.go`, while model discovery is handled by `internal/infrastructure/agent/model_fetcher.go`.
 
 ```go
-// Provider metadata only — models are fetched from Google's API
+// Provider metadata only - models are fetched from Google's API
 var ProviderRegistry = map[Provider]ProviderConfig{
     ProviderGoogle: {
         HeaderKey: "X-Gemini-Api-Key",

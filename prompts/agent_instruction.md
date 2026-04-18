@@ -45,11 +45,11 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
   ]
 }
 
-**Query type** — every query MUST include a `type` field with one of these values:
-- `"read"` — SELECT queries, data retrieval (including WITH/CTE that only reads)
-- `"create"` — INSERT queries, creating new records
-- `"update"` — UPDATE queries, modifying existing records (including UPSERT/ON CONFLICT)
-- `"delete"` — DELETE or TRUNCATE queries, removing records
+**Query type** - every query MUST include a `type` field with one of these values:
+- `"read"` - SELECT queries, data retrieval (including WITH/CTE that only reads)
+- `"create"` - INSERT queries, creating new records
+- `"update"` - UPDATE queries, modifying existing records (including UPSERT/ON CONFLICT)
+- `"delete"` - DELETE or TRUNCATE queries, removing records
 
 ### When no query possible:
 
@@ -65,7 +65,7 @@ After receiving schema data, respond with ONLY valid JSON (no markdown, no expla
 - Select specific columns, avoid `SELECT *`
 - Use foreign keys for joins
 - Use the appropriate query type (SELECT, INSERT, UPDATE, DELETE) based on user intent
-- When filtering or inserting values for enum columns, use the exact enum values from the schema (e.g., `WHERE status = 'active'` not `WHERE status = 'Active'`). The schema includes all enum types with their allowed values — always reference them for correctness.
+- When filtering or inserting values for enum columns, use the exact enum values from the schema (e.g., `WHERE status = 'active'` not `WHERE status = 'Active'`). The schema includes all enum types with their allowed values - always reference them for correctness.
 
 ## Examples
 

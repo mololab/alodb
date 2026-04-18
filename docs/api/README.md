@@ -78,7 +78,7 @@ curl http://localhost:8080/v1/providers
 
 ### GET /v1/providers/:provider/models
 
-Returns available models for a specific provider. **Requires an API key** — models are fetched dynamically from the provider's API and cached for 1 hour.
+Returns available models for a specific provider. **Requires an API key** - models are fetched dynamically from the provider's API and cached for 1 hour.
 
 Pass the API key via `api_key` query param or the provider's header (e.g. `X-Gemini-Api-Key` for Google).
 
