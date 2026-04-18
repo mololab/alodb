@@ -2,23 +2,25 @@
 
 <p align="center"><img width="100" height="100" alt="logo" src="https://github.com/user-attachments/assets/4b0b9292-c548-462a-af85-311f33c55d3a" /></p>
 
-<p align="center"><b>AI-powered database assistant</b> — talk to your PostgreSQL databases in plain English. Your credentials and data never leave your machine.</p>
+<p align="center"><b>AI-powered database assistant</b> - talk to your PostgreSQL databases in plain English. Your credentials and data never leave your machine.</p>
 
 [Website](https://alodb.com) | [API Docs](./docs/api/README.md) | [Architecture](./docs/architecture/README.md)
 
+https://github.com/user-attachments/assets/21d55d7f-bfc5-4e68-9110-15de653c8da0
+
 <p align="center">
-<img width="1512" height="1012" alt="Screenshot 2026-03-29 at 21 48 33" src="https://github.com/user-attachments/assets/2a5d62d9-ac01-4021-a8c9-ee94f5cc1fcf" />
+<img width="1512" height="1012" alt="alodb chat" src="https://github.com/user-attachments/assets/2a5d62d9-ac01-4021-a8c9-ee94f5cc1fcf" />
 </p>
 
 <p align="center">
-<img width="1512" height="1012" alt="Screenshot 2026-03-29 at 21 49 35" src="https://github.com/user-attachments/assets/cb559a48-0517-4ed8-9789-a84d55cba12b" />
+<img width="1512" height="1012" alt="alodb studio" src="https://github.com/user-attachments/assets/cb559a48-0517-4ed8-9789-a84d55cba12b" />
 </p>
 
 ---
 
 ## How It Works
 
-AloDB uses a **split-execution architecture** — the AI runs on the server, but all database queries execute locally on your machine.
+AloDB uses a **split-execution architecture** - the AI runs on the server, but all database queries execute locally on your machine.
 
 ```
 ┌──────────────────────────────┐
@@ -41,9 +43,9 @@ AloDB uses a **split-execution architecture** — the AI runs on the server, but
 2. The app connects to the server via WebSocket
 3. The AI agent reads your database schema (by sending SQL queries back to the client for local execution)
 4. The AI generates the appropriate SQL query
-5. You review and run the query — execution happens entirely on your machine
+5. You review and run the query - execution happens entirely on your machine
 
-**The server never touches your database.** It only sees schema structure and your questions — never credentials, connection strings, or row data.
+**The server never touches your database.** It only sees schema structure and your questions - never credentials, connection strings, or row data.
 
 ---
 
@@ -99,7 +101,7 @@ curl http://localhost:8080/v1/models
 
 Returns all supported LLM models with provider metadata. Currently supports **6 Gemini models** including Gemini 3 Pro, Gemini 2.5 Flash/Pro, and more.
 
-### WebSocket — Chat Streaming
+### WebSocket - Chat Streaming
 
 ```bash
 # Connect (API key via query param)
@@ -186,11 +188,11 @@ prompts/
 
 ### Key Design Decisions
 
-- **Client-side query execution** — the server never connects to any database. Schema queries are sent to the client via WebSocket, executed locally, and results returned.
-- **Agent caching** — agents are cached by `model + SHA256(apiKey)[:8]` hash. Reused across sessions sharing the same model and key without storing raw keys.
-- **Schema caching** — database schemas are cached per-session with configurable TTL (default 1h) to avoid redundant introspection.
-- **External prompts** — agent instructions live in `prompts/agent_instruction.md`, allowing behavior changes without code changes.
-- **Context-driven security** — credentials flow through Go's `context.Context`, never serialized or logged.
+- **Client-side query execution** - the server never connects to any database. Schema queries are sent to the client via WebSocket, executed locally, and results returned.
+- **Agent caching** - agents are cached by `model + SHA256(apiKey)[:8]` hash. Reused across sessions sharing the same model and key without storing raw keys.
+- **Schema caching** - database schemas are cached per-session with configurable TTL (default 1h) to avoid redundant introspection.
+- **External prompts** - agent instructions live in `prompts/agent_instruction.md`, allowing behavior changes without code changes.
+- **Context-driven security** - credentials flow through Go's `context.Context`, never serialized or logged.
 
 ---
 
@@ -200,11 +202,11 @@ prompts/
 | --------------------------- | ------------------------------------ |
 | Database credentials        | **Never**                            |
 | Query results / row data    | **Never**                            |
-| Database schema (structure) | Yes — sent to LLM for SQL generation |
-| User's question             | Yes — sent to LLM                    |
+| Database schema (structure) | Yes - sent to LLM for SQL generation |
+| User's question             | Yes - sent to LLM                    |
 | API key (Gemini)            | Per-request to LLM provider          |
 
-- API keys are passed per-request via header (`X-Gemini-Api-Key`) or query param — never stored server-side
+- API keys are passed per-request via header (`X-Gemini-Api-Key`) or query param - never stored server-side
 - All SQL execution happens on the client
 - The LLM only sees schema structure and the user's question
 - Sessions use cryptographically random UUIDs, stored in-memory only
@@ -227,7 +229,7 @@ prompts/
 
 | Variable           | Required | Default      | Description                                             |
 | ------------------ | -------- | ------------ | ------------------------------------------------------- |
-| `SERVER_PORT`      | Yes      | —            | HTTP server port                                        |
+| `SERVER_PORT`      | Yes      | -            | HTTP server port                                        |
 | `SERVER_ENV`       | No       | `production` | `development` (pretty logs) or `production` (JSON logs) |
 | `SCHEMA_CACHE_TTL` | No       | `1h`         | How long to cache database schemas per session          |
 
