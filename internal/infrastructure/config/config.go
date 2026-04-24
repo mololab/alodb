@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"time"
 
 	"github.com/spf13/viper"
@@ -25,6 +26,9 @@ type AgentConfig struct {
 }
 
 func Load() (config Config, err error) {
+	if prefix := os.Getenv("ENV_PREFIX"); prefix != "" {
+		viper.SetEnvPrefix(prefix)
+	}
 	viper.AutomaticEnv()
 
 	viper.AddConfigPath(".")
